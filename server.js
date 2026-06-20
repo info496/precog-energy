@@ -25,16 +25,22 @@ app.use('/api/pun', punRoutes);
 // Su Render free il cron interno funziona solo se il servizio è attivo.
 // In produzione è meglio usare Render Cron Job separato che chiama /api/pun/update.
 const cron = require('node-cron');
-cron.schedule('15 14 * * *', async () => {
-  console.log('[CRON] Avvio aggiornamento PUN 14:15');
-  try {
-    await updatePunToday();
-    console.log('[CRON] Aggiornamento PUN completato');
-  } catch (err) {
-    console.error('[CRON] Errore aggiornamento PUN:', err.message);
-  }
-}, { timezone: 'Europe/Rome' });
 
+if (process.env.ENABLE_INTERNAL_CRON === 'true') {
+  cron.schedule('15 14 * * *', async () => {
+    console.log('[CRON] Avvio aggiornamento PUN 14:15');
+    try {
+      await updatePunToday();
+      console.log('[CRON] Aggiornamento PUN completato');
+    } catch (err) {
+      console.error('[CRON] Errore aggiornamento PUN:', err.message);
+    }
+  }, { timezone: 'Europe/Rome' });
+
+  console.log('[CRON] Internal cron ENABLED');
+} else {
+  console.log('[CRON] Internal cron DISABLED');
+}
 app.listen(PORT, () => {
   console.log(`PRECOG Energy API listening on port ${PORT}`);
 });
