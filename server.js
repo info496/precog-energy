@@ -12,11 +12,7 @@ app.use(express.json({ limit: '10mb' }));
 app.use('/public', express.static('public'));
 
 app.get('/', (req, res) => {
-  res.json({
-    name: 'PRECOG Energy API',
-    status: 'online',
-    endpoints: ['/api/health', '/api/pun/latest', '/api/pun/update']
-  });
+  res.sendFile(__dirname + '/public/index.html');
 });
 
 app.get('/api/health', (req, res) => {

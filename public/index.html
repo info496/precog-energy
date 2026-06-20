@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PRECOG Energy</title>
+
+    <style>
+        body{
+            margin:0;
+            font-family:Arial,Helvetica,sans-serif;
+            background:#0f172a;
+            color:white;
+            display:flex;
+            justify-content:center;
+            align-items:center;
+            height:100vh;
+        }
+
+        .card{
+            background:#1e293b;
+            padding:40px;
+            border-radius:20px;
+            text-align:center;
+            box-shadow:0 0 30px rgba(0,0,0,.4);
+            min-width:420px;
+        }
+
+        h1{
+            margin-top:0;
+            color:#38bdf8;
+        }
+
+        #pun{
+            font-size:48px;
+            font-weight:bold;
+            margin:30px 0;
+            color:#22c55e;
+        }
+
+        button{
+            padding:12px 25px;
+            border:none;
+            border-radius:10px;
+            background:#38bdf8;
+            color:white;
+            cursor:pointer;
+            font-size:16px;
+        }
+    </style>
+</head>
+
+<body>
+
+<div class="card">
+    <h1>PRECOG Energy</h1>
+
+    <h3>PUN Medio Giornaliero</h3>
+
+    <div id="pun">Caricamento...</div>
+
+    <button onclick="caricaPun()">Aggiorna</button>
+</div>
+
+<script>
+
+async function caricaPun(){
+
+    const risposta = await fetch('/api/pun/latest');
+    const dati = await risposta.json();
+
+    document.getElementById("pun").innerHTML =
+        dati.average + " €/MWh";
+}
+
+caricaPun();
+
+</script>
+
+</body>
+</html>
