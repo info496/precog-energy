@@ -34,7 +34,7 @@ async function getPunMgp(dateYYYYMMDD) {
   return requestGmeData({
     Platform: 'PublicMarketResults',
     Segment: 'MGP',
-    DataName: 'ME_ConventionalPrices',
+    DataName: 'ME_ZonalPrices',
     IntervalStart: Number(dateYYYYMMDD),
     IntervalEnd: Number(dateYYYYMMDD),
     Attributes: {}

@@ -31,7 +31,7 @@ function normalizePun(raw, dateYYYYMMDD) {
 
   return {
     source: 'GME - Mercato del Giorno Prima',
-    dataName: 'ME_ConventionalPrices',
+    dataName: 'ME_ZonalPrices',
     segment: 'MGP',
     date: String(dateYYYYMMDD),
     updatedAt: new Date().toISOString(),
