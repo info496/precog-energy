@@ -18,6 +18,7 @@
         }
 
         .card{
+
             background:#1e293b;
             padding:40px;
             border-radius:20px;
@@ -53,11 +54,13 @@
 <body>
 
 <div class="card">
-    <h1>PRECOG Energy</h1>
+    <h1>PUN INDEX GME</h1>
 
-    <h3>PUN Medio Giornaliero</h3>
+    <h3 id="dataLabel">Caricamento data...</h3>
 
     <div id="pun">Caricamento...</div>
+
+    <div id="punKwh">...</div>
 
     <button onclick="caricaPun()">Aggiorna</button>
 </div>
@@ -69,8 +72,21 @@ async function caricaPun(){
     const risposta = await fetch('/api/pun/latest');
     const dati = await risposta.json();
 
-    document.getElementById("pun").innerHTML =
-        dati.average + " €/MWh";
+const data = dati.date;
+
+const dataFormattata =
+    data.substring(6,8) + "/" +
+    data.substring(4,6) + "/" +
+    data.substring(0,4);
+
+document.getElementById("dataLabel").innerHTML =
+    "PUN " + dataFormattata;
+
+document.getElementById("pun").innerHTML =
+    Number(dati.average).toFixed(2) + " €/MWh";
+
+document.getElementById("punKwh").innerHTML =
+    (dati.average / 1000).toFixed(3) + " €/kWh";
 }
 
 caricaPun();
