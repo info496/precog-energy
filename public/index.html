@@ -102,17 +102,28 @@ function formatKwh(value){
 
 async function caricaPun(){
 
-    const risposta = await fetch('/api/pun/latest');
-    const dati = await risposta.json();
+    const risposta = await fetch('/api/pun/today');
+    const oggi = await risposta.json();
 
-    document.getElementById("dataLabel").innerHTML =
-        "PUN " + formatDate(dati.date);
+    if (oggi.published && oggi.data && oggi.data.average !== null) {
+        document.getElementById("dataLabel").innerHTML =
+            "PUN " + formatDate(oggi.data.date);
 
-    document.getElementById("pun").innerHTML =
-        formatPun(dati.average);
+        document.getElementById("pun").innerHTML =
+            formatPun(oggi.data.average);
 
-    document.getElementById("punKwh").innerHTML =
-        formatKwh(dati.average);
+        document.getElementById("punKwh").innerHTML =
+            formatKwh(oggi.data.average);
+    } else {
+        document.getElementById("dataLabel").innerHTML =
+            "PUN " + formatDate(oggi.date);
+
+        document.getElementById("pun").innerHTML =
+            "IN ATTESA DI PUBBLICAZIONE";
+
+        document.getElementById("punKwh").innerHTML =
+            "---";
+    }
 
     const rispostaDomani = await fetch('/api/pun/tomorrow');
     const domani = await rispostaDomani.json();
