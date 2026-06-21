@@ -5,11 +5,40 @@ const { getPunMgp } = require('../services/gmeRequest');
 const { normalizePun } = require('../services/normalizePun');
 
 function todayYYYYMMDD() {
-  const now = new Date();
-  const y = now.getFullYear();
-  const m = String(now.getMonth() + 1).padStart(2, '0');
-  const d = String(now.getDate()).padStart(2, '0');
+  return dateToYYYYMMDD(new Date());
+}
+
+function tomorrowYYYYMMDD() {
+  const date = new Date();
+  date.setDate(date.getDate() + 1);
+  return dateToYYYYMMDD(date);
+}
+
+function dateToYYYYMMDD(date) {
+  const y = date.getFullYear();
+  const m = String(date.getMonth() + 1).padStart(2, '0');
+  const d = String(date.getDate()).padStart(2, '0');
   return `${y}${m}${d}`;
+}
+
+function savePunToStorage(dateYYYYMMDD, data) {
+  const storageDir = path.join(__dirname, '..', 'storage');
+  fs.mkdirSync(storageDir, { recursive: true });
+
+  fs.writeFileSync(
+    path.join(storageDir, `pun_${dateYYYYMMDD}.json`),
+    JSON.stringify(data, null, 2)
+  );
+}
+
+function savePunAsLatest(data) {
+  const publicDir = path.join(__dirname, '..', 'public');
+  fs.mkdirSync(publicDir, { recursive: true });
+
+  fs.writeFileSync(
+    path.join(publicDir, 'pun_latest.json'),
+    JSON.stringify(data, null, 2)
+  );
 }
 
 async function fetchPunForDate(dateYYYYMMDD) {
@@ -18,22 +47,33 @@ async function fetchPunForDate(dateYYYYMMDD) {
 }
 
 async function updatePunForDate(dateYYYYMMDD) {
-  const normalized = await fetchPunForDate(dateYYYYMMDD);
+  const data = await fetchPunForDate(dateYYYYMMDD);
 
-  const storageDir = path.join(__dirname, '..', 'storage');
-  const publicDir = path.join(__dirname, '..', 'public');
-  fs.mkdirSync(storageDir, { recursive: true });
-  fs.mkdirSync(publicDir, { recursive: true });
+  savePunToStorage(dateYYYYMMDD, data);
+  savePunAsLatest(data);
 
-  fs.writeFileSync(path.join(storageDir, `pun_${dateYYYYMMDD}.json`), JSON.stringify(normalized, null, 2));
-  fs.writeFileSync(path.join(publicDir, 'pun_latest.json'), JSON.stringify(normalized, null, 2));
+  return data;
+}
 
-  return normalized;
+async function updatePunForDateStorageOnly(dateYYYYMMDD) {
+  const data = await fetchPunForDate(dateYYYYMMDD);
+
+  if (!data.average || data.count === 0) {
+    throw new Error(`PUN ${dateYYYYMMDD} non ancora pubblicato`);
+  }
+
+  savePunToStorage(dateYYYYMMDD, data);
+
+  return data;
 }
 
 async function updatePunToday() {
   const date = process.env.GME_TEST_DATE || todayYYYYMMDD();
   return updatePunForDate(date);
+}
+
+async function updatePunTomorrow() {
+  return updatePunForDateStorageOnly(tomorrowYYYYMMDD());
 }
 
 if (require.main === module) {
@@ -47,4 +87,10 @@ if (require.main === module) {
     });
 }
 
-module.exports = { updatePunToday, updatePunForDate, fetchPunForDate };
+module.exports = {
+  updatePunToday,
+  updatePunForDate,
+  updatePunTomorrow,
+  updatePunForDateStorageOnly,
+  fetchPunForDate
+};

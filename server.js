@@ -2,7 +2,10 @@ require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
 const punRoutes = require('./routes/pun');
-const { updatePunToday } = require('./cron/updatePun');
+const {
+  updatePunToday,
+  updatePunTomorrow
+} = require('./cron/updatePun');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -21,26 +24,46 @@ app.get('/api/health', (req, res) => {
 
 app.use('/api/pun', punRoutes);
 
-// Aggiornamento automatico: controlla ogni giorno nel primo pomeriggio.
-// Su Render free il cron interno funziona solo se il servizio è attivo.
-// In produzione è meglio usare Render Cron Job separato che chiama /api/pun/update.
 const cron = require('node-cron');
 
 if (process.env.ENABLE_INTERNAL_CRON === 'true') {
+
   cron.schedule('15 14 * * *', async () => {
-    console.log('[CRON] Avvio aggiornamento PUN 14:15');
+    console.log('[CRON] Avvio aggiornamento PUN oggi 14:15');
     try {
       await updatePunToday();
-      console.log('[CRON] Aggiornamento PUN completato');
+      console.log('[CRON] Aggiornamento PUN oggi completato');
     } catch (err) {
-      console.error('[CRON] Errore aggiornamento PUN:', err.message);
+      console.error('[CRON] Errore aggiornamento PUN oggi:', err.message);
+    }
+  }, { timezone: 'Europe/Rome' });
+
+  cron.schedule('0,15,30,45 13 * * *', async () => {
+    console.log('[CRON] Tentativo aggiornamento PUN domani');
+    try {
+      const data = await updatePunTomorrow();
+      console.log(`[CRON] PUN domani aggiornato: ${data.date} ${data.average}`);
+    } catch (err) {
+      console.log('[CRON] PUN domani non ancora disponibile');
+    }
+  }, { timezone: 'Europe/Rome' });
+
+  cron.schedule('0,15 14 * * *', async () => {
+    console.log('[CRON] Tentativo aggiornamento PUN domani');
+    try {
+      const data = await updatePunTomorrow();
+      console.log(`[CRON] PUN domani aggiornato: ${data.date} ${data.average}`);
+    } catch (err) {
+      console.log('[CRON] PUN domani non ancora disponibile');
     }
   }, { timezone: 'Europe/Rome' });
 
   console.log('[CRON] Internal cron ENABLED');
+
 } else {
   console.log('[CRON] Internal cron DISABLED');
 }
+
 app.listen(PORT, () => {
   console.log(`PRECOG Energy API listening on port ${PORT}`);
 });
