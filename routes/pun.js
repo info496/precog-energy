@@ -9,6 +9,28 @@ const {
 
 const router = express.Router();
 
+function todayYYYYMMDD() {
+  const now = new Date();
+  const y = now.getFullYear();
+  const m = String(now.getMonth() + 1).padStart(2, '0');
+  const d = String(now.getDate()).padStart(2, '0');
+  return `${y}${m}${d}`;
+}
+
+function nextDayYYYYMMDD(date) {
+  const d = new Date(
+    Number(date.substring(0, 4)),
+    Number(date.substring(4, 6)) - 1,
+    Number(date.substring(6, 8)) + 1
+  );
+
+  return (
+    d.getFullYear() +
+    String(d.getMonth() + 1).padStart(2, '0') +
+    String(d.getDate()).padStart(2, '0')
+  );
+}
+
 router.get('/latest', (req, res) => {
   const file = path.join(__dirname, '..', 'public', 'pun_latest.json');
 
@@ -22,31 +44,38 @@ router.get('/latest', (req, res) => {
   res.json(JSON.parse(fs.readFileSync(file, 'utf8')));
 });
 
-router.get('/tomorrow', async (req, res) => {
+router.get('/today', async (req, res) => {
   try {
-    const latestFile = path.join(__dirname, '..', 'public', 'pun_latest.json');
+    const date = todayYYYYMMDD();
+    const data = await fetchPunForDate(date);
 
-    if (!fs.existsSync(latestFile)) {
-      return res.status(404).json({
-        ok: false,
+    if (!data || !data.average || data.count === 0) {
+      return res.json({
+        ok: true,
         published: false,
-        error: 'PUN latest non disponibile'
+        date
       });
     }
 
-    const latest = JSON.parse(fs.readFileSync(latestFile, 'utf8'));
-    const date = String(latest.date);
+    res.json({
+      ok: true,
+      published: true,
+      data
+    });
 
-    const tomorrow = new Date(
-      Number(date.substring(0, 4)),
-      Number(date.substring(4, 6)) - 1,
-      Number(date.substring(6, 8)) + 1
-    );
+  } catch (err) {
+    res.json({
+      ok: true,
+      published: false,
+      date: todayYYYYMMDD()
+    });
+  }
+});
 
-    const tomorrowYYYYMMDD =
-      tomorrow.getFullYear() +
-      String(tomorrow.getMonth() + 1).padStart(2, '0') +
-      String(tomorrow.getDate()).padStart(2, '0');
+router.get('/tomorrow', async (req, res) => {
+  try {
+    const today = todayYYYYMMDD();
+    const tomorrowYYYYMMDD = nextDayYYYYMMDD(today);
 
     const data = await fetchPunForDate(tomorrowYYYYMMDD);
 
@@ -67,7 +96,8 @@ router.get('/tomorrow', async (req, res) => {
   } catch (err) {
     res.json({
       ok: true,
-      published: false
+      published: false,
+      date: nextDayYYYYMMDD(todayYYYYMMDD())
     });
   }
 });
