@@ -86,40 +86,56 @@
 </div>
 
 <script>
+function formatDate(data){
+    return data.substring(6,8) + "/" +
+           data.substring(4,6) + "/" +
+           data.substring(0,4);
+}
+
+function formatPun(value){
+    return Number(value).toFixed(2) + " €/MWh";
+}
+
+function formatKwh(value){
+    return (value / 1000).toFixed(3) + " €/kWh";
+}
+
 async function caricaPun(){
 
     const risposta = await fetch('/api/pun/latest');
     const dati = await risposta.json();
 
-    const data = dati.date;
-
-    const dataFormattata =
-        data.substring(6,8) + "/" +
-        data.substring(4,6) + "/" +
-        data.substring(0,4);
-
-    const domani = new Date(
-        Number(data.substring(0,4)),
-        Number(data.substring(4,6)) - 1,
-        Number(data.substring(6,8)) + 1
-    );
-
-    const domaniFormattata =
-        String(domani.getDate()).padStart(2, "0") + "/" +
-        String(domani.getMonth() + 1).padStart(2, "0") + "/" +
-        domani.getFullYear();
-
     document.getElementById("dataLabel").innerHTML =
-        "PUN " + dataFormattata;
+        "PUN " + formatDate(dati.date);
 
     document.getElementById("pun").innerHTML =
-        Number(dati.average).toFixed(2) + " €/MWh";
+        formatPun(dati.average);
 
     document.getElementById("punKwh").innerHTML =
-        (dati.average / 1000).toFixed(3) + " €/kWh";
+        formatKwh(dati.average);
 
-    document.getElementById("dataLabelTomorrow").innerHTML =
-        "PUN " + domaniFormattata;
+    const rispostaDomani = await fetch('/api/pun/tomorrow');
+    const domani = await rispostaDomani.json();
+
+    if (domani.published && domani.data && domani.data.average !== null) {
+        document.getElementById("dataLabelTomorrow").innerHTML =
+            "PUN " + formatDate(domani.data.date);
+
+        document.getElementById("punTomorrow").innerHTML =
+            formatPun(domani.data.average);
+
+        document.getElementById("punTomorrowKwh").innerHTML =
+            formatKwh(domani.data.average);
+    } else {
+        document.getElementById("dataLabelTomorrow").innerHTML =
+            "PUN " + formatDate(domani.date);
+
+        document.getElementById("punTomorrow").innerHTML =
+            "IN ATTESA DI PUBBLICAZIONE";
+
+        document.getElementById("punTomorrowKwh").innerHTML =
+            "---";
+    }
 }
 
 caricaPun();
