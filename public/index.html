@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>PRECOG Energy</title>
+    <title>PUN INDEX GME</title>
 
     <style>
         body{
@@ -14,17 +14,18 @@
             display:flex;
             justify-content:center;
             align-items:center;
-            height:100vh;
+            min-height:100vh;
+            padding:20px;
         }
 
         .card{
-
             background:#1e293b;
-            padding:40px;
+            padding:30px;
             border-radius:20px;
             text-align:center;
             box-shadow:0 0 30px rgba(0,0,0,.4);
-            min-width:420px;
+            width:100%;
+            max-width:480px;
         }
 
         h1{
@@ -32,11 +33,23 @@
             color:#38bdf8;
         }
 
-        #pun{
-            font-size:48px;
+        .box{
+            background:#334155;
+            padding:20px;
+            border-radius:12px;
+            margin:15px 0;
+        }
+
+        .valore{
+            font-size:36px;
             font-weight:bold;
-            margin:30px 0;
             color:#22c55e;
+            margin:15px 0 5px;
+        }
+
+        .kwh{
+            font-size:18px;
+            color:#cbd5e1;
         }
 
         button{
@@ -47,6 +60,7 @@
             color:white;
             cursor:pointer;
             font-size:16px;
+            margin-top:10px;
         }
     </style>
 </head>
@@ -56,41 +70,59 @@
 <div class="card">
     <h1>PUN INDEX GME</h1>
 
-    <h3 id="dataLabel">Caricamento data...</h3>
+    <div class="box">
+        <h3 id="dataLabel">Caricamento data...</h3>
+        <div id="pun" class="valore">...</div>
+        <div id="punKwh" class="kwh">...</div>
+    </div>
 
-    <div id="pun">Caricamento...</div>
-
-    <div id="punKwh">...</div>
+    <div class="box">
+        <h3 id="dataLabelTomorrow">Caricamento data...</h3>
+        <div id="punTomorrow" class="valore">IN ATTESA DI PUBBLICAZIONE</div>
+        <div id="punTomorrowKwh" class="kwh">---</div>
+    </div>
 
     <button onclick="caricaPun()">Aggiorna</button>
 </div>
 
 <script>
-
 async function caricaPun(){
 
     const risposta = await fetch('/api/pun/latest');
     const dati = await risposta.json();
 
-const data = dati.date;
+    const data = dati.date;
 
-const dataFormattata =
-    data.substring(6,8) + "/" +
-    data.substring(4,6) + "/" +
-    data.substring(0,4);
+    const dataFormattata =
+        data.substring(6,8) + "/" +
+        data.substring(4,6) + "/" +
+        data.substring(0,4);
 
-document.getElementById("dataLabel").innerHTML =
-    "PUN " + dataFormattata;
+    const domani = new Date(
+        Number(data.substring(0,4)),
+        Number(data.substring(4,6)) - 1,
+        Number(data.substring(6,8)) + 1
+    );
 
-document.getElementById("pun").innerHTML =
-    Number(dati.average).toFixed(2) + " €/MWh";
+    const domaniFormattata =
+        String(domani.getDate()).padStart(2, "0") + "/" +
+        String(domani.getMonth() + 1).padStart(2, "0") + "/" +
+        domani.getFullYear();
 
-document.getElementById("punKwh").innerHTML =
-    (dati.average / 1000).toFixed(3) + " €/kWh";
+    document.getElementById("dataLabel").innerHTML =
+        "PUN " + dataFormattata;
+
+    document.getElementById("pun").innerHTML =
+        Number(dati.average).toFixed(2) + " €/MWh";
+
+    document.getElementById("punKwh").innerHTML =
+        (dati.average / 1000).toFixed(3) + " €/kWh";
+
+    document.getElementById("dataLabelTomorrow").innerHTML =
+        "PUN " + domaniFormattata;
 }
 
 caricaPun();
-
 </script>
 
 </body>
