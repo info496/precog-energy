@@ -12,9 +12,13 @@ function todayYYYYMMDD() {
   return `${y}${m}${d}`;
 }
 
-async function updatePunForDate(dateYYYYMMDD) {
+async function fetchPunForDate(dateYYYYMMDD) {
   const result = await getPunMgp(dateYYYYMMDD);
-  const normalized = normalizePun(result.decoded, dateYYYYMMDD);
+  return normalizePun(result.decoded, dateYYYYMMDD);
+}
+
+async function updatePunForDate(dateYYYYMMDD) {
+  const normalized = await fetchPunForDate(dateYYYYMMDD);
 
   const storageDir = path.join(__dirname, '..', 'storage');
   const publicDir = path.join(__dirname, '..', 'public');
@@ -43,4 +47,4 @@ if (require.main === module) {
     });
 }
 
-module.exports = { updatePunToday, updatePunForDate };
+module.exports = { updatePunToday, updatePunForDate, fetchPunForDate };
