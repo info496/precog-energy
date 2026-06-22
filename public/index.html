@@ -11,11 +11,14 @@
             font-family:Arial,Helvetica,sans-serif;
             background:#0f172a;
             color:white;
-            display:flex;
-            justify-content:center;
-            align-items:center;
             min-height:100vh;
             padding:20px;
+        }
+
+        .container{
+            width:100%;
+            max-width:1100px;
+            margin:0 auto;
         }
 
         .card{
@@ -24,8 +27,7 @@
             border-radius:20px;
             text-align:center;
             box-shadow:0 0 30px rgba(0,0,0,.4);
-            width:100%;
-            max-width:480px;
+            margin-bottom:20px;
         }
 
         h1{
@@ -52,6 +54,52 @@
             color:#cbd5e1;
         }
 
+        .filters{
+            display:flex;
+            gap:15px;
+            justify-content:space-between;
+            align-items:end;
+            flex-wrap:wrap;
+            background:#334155;
+            padding:20px;
+            border-radius:12px;
+            margin-top:20px;
+        }
+
+        .filter-group{
+            display:flex;
+            flex-direction:column;
+            text-align:left;
+            gap:6px;
+            flex:1;
+            min-width:160px;
+        }
+
+        label{
+            font-size:14px;
+            font-weight:bold;
+            color:#cbd5e1;
+        }
+
+        input, select{
+            padding:10px;
+            border-radius:8px;
+            border:none;
+            font-size:15px;
+        }
+
+        .chart-box{
+            background:#334155;
+            padding:20px;
+            border-radius:12px;
+            margin-top:20px;
+            min-height:260px;
+            display:flex;
+            justify-content:center;
+            align-items:center;
+            color:#cbd5e1;
+        }
+
         button{
             padding:12px 25px;
             border:none;
@@ -62,27 +110,77 @@
             font-size:16px;
             margin-top:10px;
         }
+
+        @media (max-width:600px){
+            .valore{
+                font-size:30px;
+            }
+
+            .filters{
+                flex-direction:column;
+                align-items:stretch;
+            }
+        }
     </style>
 </head>
 
 <body>
 
-<div class="card">
-    <h1>PUN INDEX GME</h1>
+<div class="container">
 
-    <div class="box">
-        <h3 id="dataLabel">Caricamento data...</h3>
-        <div id="pun" class="valore">...</div>
-        <div id="punKwh" class="kwh">...</div>
+    <div class="card">
+        <h1>PUN INDEX GME</h1>
+
+        <div class="box">
+            <h3 id="dataLabel">Caricamento data...</h3>
+            <div id="pun" class="valore">...</div>
+            <div id="punKwh" class="kwh">...</div>
+        </div>
+
+        <div class="box">
+            <h3 id="dataLabelTomorrow">Caricamento data...</h3>
+            <div id="punTomorrow" class="valore">IN ATTESA DI PUBBLICAZIONE</div>
+            <div id="punTomorrowKwh" class="kwh">---</div>
+        </div>
+
+        <button onclick="caricaPun()">Aggiorna</button>
     </div>
 
-    <div class="box">
-        <h3 id="dataLabelTomorrow">Caricamento data...</h3>
-        <div id="punTomorrow" class="valore">IN ATTESA DI PUBBLICAZIONE</div>
-        <div id="punTomorrowKwh" class="kwh">---</div>
+    <div class="card">
+        <h1>Grafico PUN</h1>
+
+        <div class="filters">
+            <div class="filter-group">
+                <label for="dateFrom">DATA DA</label>
+                <input type="date" id="dateFrom">
+            </div>
+
+            <div class="filter-group">
+                <label for="dateTo">DATA A</label>
+                <input type="date" id="dateTo">
+            </div>
+
+            <div class="filter-group">
+                <label for="detail">DETTAGLIO</label>
+                <select id="detail">
+                    <option value="quarter">15 minuti</option>
+                    <option value="hour">Orario</option>
+                    <option value="daily">Giornaliero</option>
+                    <option value="monthly">Mensile</option>
+                    <option value="yearly">Annuale</option>
+                </select>
+            </div>
+
+            <div class="filter-group">
+                <button onclick="caricaGrafico()">Visualizza</button>
+            </div>
+        </div>
+
+        <div class="chart-box" id="chartBox">
+            Area grafico Chart.js - prossimo step
+        </div>
     </div>
 
-    <button onclick="caricaPun()">Aggiorna</button>
 </div>
 
 <script>
@@ -98,6 +196,14 @@ function formatPun(value){
 
 function formatKwh(value){
     return (value / 1000).toFixed(3) + " €/kWh";
+}
+
+function todayInputDate(){
+    const now = new Date();
+    const y = now.getFullYear();
+    const m = String(now.getMonth() + 1).padStart(2, "0");
+    const d = String(now.getDate()).padStart(2, "0");
+    return `${y}-${m}-${d}`;
 }
 
 async function caricaPun(){
@@ -149,6 +255,22 @@ async function caricaPun(){
     }
 }
 
+function inizializzaFiltri(){
+    const oggi = todayInputDate();
+    document.getElementById("dateFrom").value = oggi;
+    document.getElementById("dateTo").value = oggi;
+}
+
+function caricaGrafico(){
+    const from = document.getElementById("dateFrom").value;
+    const to = document.getElementById("dateTo").value;
+    const detail = document.getElementById("detail").value;
+
+    document.getElementById("chartBox").innerHTML =
+        "Grafico richiesto: " + from + " → " + to + " | " + detail;
+}
+
+inizializzaFiltri();
 caricaPun();
 </script>
 
