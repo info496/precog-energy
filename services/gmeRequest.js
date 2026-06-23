@@ -16,8 +16,11 @@ async function requestGmeData(payload) {
   });
 
   const data = response.data;
+
   if (data.resultRequest || data.ResultRequest) {
-    throw new Error(`RequestData GME fallita: ${data.resultRequest || data.ResultRequest}`);
+    throw new Error(
+      `RequestData GME fallita: ${data.resultRequest || data.ResultRequest}`
+    );
   }
 
   const content = data.contentResponse || data.ContentResponse;
@@ -41,4 +44,19 @@ async function getPunMgp(dateYYYYMMDD) {
   });
 }
 
-module.exports = { requestGmeData, getPunMgp };
+async function getPunMgpRange(startDateYYYYMMDD, endDateYYYYMMDD) {
+  return requestGmeData({
+    Platform: 'PublicMarketResults',
+    Segment: 'MGP',
+    DataName: 'ME_ZonalPrices',
+    IntervalStart: Number(startDateYYYYMMDD),
+    IntervalEnd: Number(endDateYYYYMMDD),
+    Attributes: {}
+  });
+}
+
+module.exports = {
+  requestGmeData,
+  getPunMgp,
+  getPunMgpRange
+};
