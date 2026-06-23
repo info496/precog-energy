@@ -19,7 +19,10 @@ app.get('/', (req, res) => {
 });
 
 app.get('/api/health', (req, res) => {
-  res.json({ status: 'ok', time: new Date().toISOString() });
+  res.json({
+    status: 'ok',
+    time: new Date().toISOString()
+  });
 });
 
 app.use('/api/pun', punRoutes);
@@ -28,42 +31,70 @@ const cron = require('node-cron');
 
 if (process.env.ENABLE_INTERNAL_CRON === 'true') {
 
+  // Aggiornamento PUN del giorno corrente
   cron.schedule('15 14 * * *', async () => {
     console.log('[CRON] Avvio aggiornamento PUN oggi 14:15');
+
     try {
       await updatePunToday();
       console.log('[CRON] Aggiornamento PUN oggi completato');
     } catch (err) {
-      console.error('[CRON] Errore aggiornamento PUN oggi:', err.message);
+      console.error(
+        '[CRON] Errore aggiornamento PUN oggi:',
+        err.message
+      );
     }
-  }, { timezone: 'Europe/Rome' });
+  }, {
+    timezone: 'Europe/Rome'
+  });
 
-  cron.schedule('0,15,30,45 13 * * *', async () => {
-    console.log('[CRON] Tentativo aggiornamento PUN domani');
+  // Tentativi pubblicazione PUN D+1
+  cron.schedule('15,30 13 * * *', async () => {
+    console.log('[CRON] Tentativo aggiornamento PUN D+1');
+
     try {
       const data = await updatePunTomorrow();
-      console.log(`[CRON] PUN domani aggiornato: ${data.date} ${data.average}`);
+
+      console.log(
+        `[CRON] PUN D+1 aggiornato: ${data.date} ${data.average}`
+      );
     } catch (err) {
-      console.log('[CRON] PUN domani non ancora disponibile');
+      console.log(
+        '[CRON] PUN D+1 non ancora disponibile'
+      );
     }
-  }, { timezone: 'Europe/Rome' });
+  }, {
+    timezone: 'Europe/Rome'
+  });
 
   cron.schedule('0,15 14 * * *', async () => {
-    console.log('[CRON] Tentativo aggiornamento PUN domani');
+    console.log('[CRON] Tentativo aggiornamento PUN D+1');
+
     try {
       const data = await updatePunTomorrow();
-      console.log(`[CRON] PUN domani aggiornato: ${data.date} ${data.average}`);
+
+      console.log(
+        `[CRON] PUN D+1 aggiornato: ${data.date} ${data.average}`
+      );
     } catch (err) {
-      console.log('[CRON] PUN domani non ancora disponibile');
+      console.log(
+        '[CRON] PUN D+1 non ancora disponibile'
+      );
     }
-  }, { timezone: 'Europe/Rome' });
+  }, {
+    timezone: 'Europe/Rome'
+  });
 
   console.log('[CRON] Internal cron ENABLED');
 
 } else {
+
   console.log('[CRON] Internal cron DISABLED');
+
 }
 
 app.listen(PORT, () => {
-  console.log(`PRECOG Energy API listening on port ${PORT}`);
+  console.log(
+    `PRECOG Energy API listening on port ${PORT}`
+  );
 });
