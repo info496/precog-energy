@@ -31,6 +31,15 @@ function nextDayYYYYMMDD(date) {
   );
 }
 
+function averageGroups(groups, labelKey) {
+  return Object.keys(groups)
+    .sort()
+    .map(label => ({
+      [labelKey]: label,
+      price: Number((groups[label].sum / groups[label].count).toFixed(2))
+    }));
+}
+
 function buildQuarterHourChart(data) {
   const groups = {};
 
@@ -53,12 +62,30 @@ function buildQuarterHourChart(data) {
     groups[label].count += 1;
   }
 
-  return Object.keys(groups)
-    .sort()
-    .map(label => ({
-      time: label,
-      price: Number((groups[label].sum / groups[label].count).toFixed(2))
-    }));
+  return averageGroups(groups, 'time');
+}
+
+function buildHourlyChart(data) {
+  const groups = {};
+
+  for (const item of data.hours || []) {
+    const period = Number(item.period);
+    const price = Number(item.price);
+
+    if (!period || Number.isNaN(price)) continue;
+
+    const hourIndex = Math.floor(((period - 1) % 96) / 4);
+    const label = `${String(hourIndex).padStart(2, '0')}:00`;
+
+    if (!groups[label]) {
+      groups[label] = { sum: 0, count: 0 };
+    }
+
+    groups[label].sum += price;
+    groups[label].count += 1;
+  }
+
+  return averageGroups(groups, 'time');
 }
 
 router.get('/latest', (req, res) => {
@@ -77,11 +104,13 @@ router.get('/latest', (req, res) => {
 router.get('/chart', (req, res) => {
   const frame = String(req.query.frame || '15m').toLowerCase();
 
-  if (frame !== '15m') {
+  const supportedFrames = ['15m', 'hourly'];
+
+  if (!supportedFrames.includes(frame)) {
     return res.status(400).json({
       ok: false,
       error: 'Time frame non supportato in questa versione',
-      supportedFrames: ['15m']
+      supportedFrames
     });
   }
 
@@ -95,7 +124,10 @@ router.get('/chart', (req, res) => {
   }
 
   const data = JSON.parse(fs.readFileSync(file, 'utf8'));
-  const points = buildQuarterHourChart(data);
+
+  const points = frame === 'hourly'
+    ? buildHourlyChart(data)
+    : buildQuarterHourChart(data);
 
   res.json({
     ok: true,
