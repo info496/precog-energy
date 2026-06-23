@@ -35,13 +35,12 @@ function buildQuarterHourChart(data) {
   const groups = {};
 
   for (const item of data.hours || []) {
-    const hour = Number(item.hour);
     const period = Number(item.period);
     const price = Number(item.price);
 
-    if (!hour || !period || Number.isNaN(price)) continue;
+    if (!period || Number.isNaN(price)) continue;
 
-    const minutes = (hour - 1) * 60 + (period - 1) * 15;
+    const minutes = ((period - 1) % 96) * 15;
     const hh = String(Math.floor(minutes / 60)).padStart(2, '0');
     const mm = String(minutes % 60).padStart(2, '0');
     const label = `${hh}:${mm}`;
