@@ -31,6 +31,40 @@ function nextDayYYYYMMDD(date) {
   );
 }
 
+function loadHistoricalPunFiles() {
+  const storageDir = path.join(__dirname, '..', 'storage');
+
+  if (!fs.existsSync(storageDir)) {
+    return [];
+  }
+
+  const files = fs.readdirSync(storageDir)
+    .filter(file =>
+      file.startsWith('pun_') &&
+      file.endsWith('.json')
+    )
+    .sort();
+
+  return files
+    .map(file => {
+      const fullPath = path.join(storageDir, file);
+
+      try {
+        return JSON.parse(
+          fs.readFileSync(fullPath, 'utf8')
+        );
+      } catch (err) {
+        console.error(
+          `[PUN] Errore lettura file storico ${file}:`,
+          err.message
+        );
+
+        return null;
+      }
+    })
+    .filter(Boolean);
+}
+
 function averageGroups(groups, labelKey) {
   return Object.keys(groups)
     .sort()
