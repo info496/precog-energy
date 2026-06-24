@@ -122,6 +122,22 @@ function buildHourlyChart(data) {
   return averageGroups(groups, 'time');
 }
 
+function buildDailyHistoryChart(files) {
+  return files
+    .filter(item =>
+      item &&
+      item.date &&
+      typeof item.average === 'number' &&
+      !Number.isNaN(item.average)
+    )
+    .map(item => ({
+      date: item.date,
+      price: Number(item.average.toFixed(2)),
+      count: item.count || 0
+    }))
+    .sort((a, b) => a.date.localeCompare(b.date));
+}
+
 router.get('/latest', (req, res) => {
   const file = path.join(__dirname, '..', 'public', 'pun_latest.json');
 
@@ -169,6 +185,31 @@ router.get('/chart', (req, res) => {
     date: data.date,
     source: data.source,
     unit: '€/MWh',
+    points
+  });
+});
+
+router.get('/history', (req, res) => {
+  const frame = String(req.query.frame || 'daily').toLowerCase();
+
+  const supportedFrames = ['daily'];
+
+  if (!supportedFrames.includes(frame)) {
+    return res.status(400).json({
+      ok: false,
+      error: 'Time frame storico non supportato',
+      supportedFrames
+    });
+  }
+
+  const files = loadHistoricalPunFiles();
+  const points = buildDailyHistoryChart(files);
+
+  res.json({
+    ok: true,
+    frame,
+    unit: '€/MWh',
+    count: points.length,
     points
   });
 });
