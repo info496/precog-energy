@@ -50,9 +50,7 @@ function loadHistoricalPunFiles() {
       const fullPath = path.join(storageDir, file);
 
       try {
-        return JSON.parse(
-          fs.readFileSync(fullPath, 'utf8')
-        );
+        return JSON.parse(fs.readFileSync(fullPath, 'utf8'));
       } catch (err) {
         console.error(
           `[PUN] Errore lettura file storico ${file}:`,
@@ -138,6 +136,83 @@ function buildDailyHistoryChart(files) {
     .sort((a, b) => a.date.localeCompare(b.date));
 }
 
+function buildMonthlyHistoryChart(files) {
+  const groups = {};
+
+  for (const item of files) {
+    if (
+      !item ||
+      !item.date ||
+      typeof item.average !== 'number' ||
+      Number.isNaN(item.average)
+    ) {
+      continue;
+    }
+
+    const month =
+      item.date.substring(0, 4) +
+      '-' +
+      item.date.substring(4, 6);
+
+    if (!groups[month]) {
+      groups[month] = {
+        sum: 0,
+        count: 0
+      };
+    }
+
+    groups[month].sum += item.average;
+    groups[month].count += 1;
+  }
+
+  return Object.keys(groups)
+    .sort()
+    .map(month => ({
+      month,
+      price: Number(
+        (groups[month].sum / groups[month].count).toFixed(2)
+      ),
+      count: groups[month].count
+    }));
+}
+
+function buildYearlyHistoryChart(files) {
+  const groups = {};
+
+  for (const item of files) {
+    if (
+      !item ||
+      !item.date ||
+      typeof item.average !== 'number' ||
+      Number.isNaN(item.average)
+    ) {
+      continue;
+    }
+
+    const year = item.date.substring(0, 4);
+
+    if (!groups[year]) {
+      groups[year] = {
+        sum: 0,
+        count: 0
+      };
+    }
+
+    groups[year].sum += item.average;
+    groups[year].count += 1;
+  }
+
+  return Object.keys(groups)
+    .sort()
+    .map(year => ({
+      year,
+      price: Number(
+        (groups[year].sum / groups[year].count).toFixed(2)
+      ),
+      count: groups[year].count
+    }));
+}
+
 router.get('/latest', (req, res) => {
   const file = path.join(__dirname, '..', 'public', 'pun_latest.json');
 
@@ -192,7 +267,7 @@ router.get('/chart', (req, res) => {
 router.get('/history', (req, res) => {
   const frame = String(req.query.frame || 'daily').toLowerCase();
 
-  const supportedFrames = ['daily'];
+  const supportedFrames = ['daily', 'monthly', 'yearly'];
 
   if (!supportedFrames.includes(frame)) {
     return res.status(400).json({
@@ -203,7 +278,13 @@ router.get('/history', (req, res) => {
   }
 
   const files = loadHistoricalPunFiles();
-  const points = buildDailyHistoryChart(files);
+
+  const points =
+    frame === 'yearly'
+      ? buildYearlyHistoryChart(files)
+      : frame === 'monthly'
+        ? buildMonthlyHistoryChart(files)
+        : buildDailyHistoryChart(files);
 
   res.json({
     ok: true,
