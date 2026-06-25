@@ -122,13 +122,13 @@
 
       <div class="grid">
         <div class="box">
-          <div class="label">PUN OGGI</div>
+          <div id="todayLabel" class="label">PUN OGGI</div>
           <div id="todayMwh" class="value">-- €/MWh</div>
           <div id="todayKwh" class="subvalue">-- €/kWh</div>
         </div>
 
         <div class="box">
-          <div class="label">PUN D+1</div>
+          <div id="tomorrowLabel" class="label">PUN D+1</div>
           <div id="tomorrowMwh" class="value">IN ATTESA</div>
           <div id="tomorrowKwh" class="subvalue">DI PUBBLICAZIONE</div>
         </div>
@@ -172,6 +172,16 @@
       return (Number(value) / 1000).toFixed(3) + " €/kWh";
     }
 
+    function formatDateLabel(dateString) {
+      if (!dateString || String(dateString).length !== 8) return null;
+
+      const year = String(dateString).slice(0, 4);
+      const month = String(dateString).slice(4, 6);
+      const day = String(dateString).slice(6, 8);
+
+      return `${day}/${month}/${year}`;
+    }
+
     function getChartUrl(frame) {
       if (frame === "15m" || frame === "hourly") {
         return `/api/pun/chart?frame=${frame}`;
@@ -201,35 +211,37 @@
       })).filter(item => item.label && !isNaN(item.value));
     }
 
-    function extractPunValue(data) {
-      if (!data) return null;
+   function extractPunValue(response) {
+  if (!response) return null;
 
-      const directValue =
-        data.value ??
-        data.price ??
-        data.avg ??
-        data.average ??
-        data.mean ??
-        data.pun ??
-        data.punAvg ??
-        data.averagePrice;
+  const data = response.data || response;
 
-      if (directValue !== null && directValue !== undefined && !isNaN(directValue)) {
-        return Number(directValue);
-      }
+  const directValue =
+    data.value ??
+    data.price ??
+    data.avg ??
+    data.average ??
+    data.mean ??
+    data.pun ??
+    data.punAvg ??
+    data.averagePrice;
 
-      if (Array.isArray(data.points) && data.points.length > 0) {
-        const prices = data.points
-          .map(p => Number(p.price ?? p.value ?? p.avg ?? p.average ?? p.pun))
-          .filter(v => !isNaN(v));
+  if (directValue !== null && directValue !== undefined && !isNaN(directValue)) {
+    return Number(directValue);
+  }
 
-        if (prices.length > 0) {
-          return prices.reduce((sum, value) => sum + value, 0) / prices.length;
-        }
-      }
+  if (Array.isArray(data.hours) && data.hours.length > 0) {
+    const prices = data.hours
+      .map(p => Number(p.price ?? p.value ?? p.pun))
+      .filter(v => !isNaN(v));
 
-      return null;
+    if (prices.length > 0) {
+      return prices.reduce((sum, v) => sum + v, 0) / prices.length;
     }
+  }
+
+  return null;
+}
 
     async function loadSummary() {
       try {
@@ -240,6 +252,17 @@
 
         const today = await todayRes.json();
         const tomorrow = await tomorrowRes.json();
+
+        const todayDateLabel = formatDateLabel(today.data?.date || today.date);
+        const tomorrowDateLabel = formatDateLabel(tomorrow.data?.date || tomorrow.date);
+
+        document.getElementById("todayLabel").textContent = todayDateLabel
+          ? `PUN ${todayDateLabel}`
+          : "PUN OGGI";
+
+        document.getElementById("tomorrowLabel").textContent = tomorrowDateLabel
+          ? `PUN ${tomorrowDateLabel}`
+          : "PUN D+1";
 
         const todayValue = extractPunValue(today);
         const tomorrowValue = extractPunValue(tomorrow);
