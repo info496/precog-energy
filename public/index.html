@@ -121,7 +121,7 @@
       <h1>PRECOG Energy - PUN INDEX GME</h1>
 
       <div class="grid">
-               <div class="box">
+        <div class="box">
           <div class="label">PUN OGGI</div>
           <div id="todayMwh" class="value">-- €/MWh</div>
           <div id="todayKwh" class="subvalue">-- €/kWh</div>
@@ -176,7 +176,6 @@
       if (frame === "15m" || frame === "hourly") {
         return `/api/pun/chart?frame=${frame}`;
       }
-
       return `/api/pun/history?frame=${frame}`;
     }
 
@@ -188,57 +187,86 @@
         "monthly": "PUN mensile",
         "yearly": "PUN annuale"
       };
-
       return titles[frame] || "PUN";
     }
 
     function normalizeChartData(data) {
-  const rows = Array.isArray(data) ? data : data.points;
+      const rows = Array.isArray(data) ? data : data.points;
 
-  if (!Array.isArray(rows)) return [];
+      if (!Array.isArray(rows)) return [];
 
-  return rows.map(item => ({
-    label: item.label || item.time || item.date || item.month || item.year || "",
-    value: Number(item.value ?? item.price ?? item.avg ?? item.average ?? item.pun)
-  })).filter(item => item.label && !isNaN(item.value));
+      return rows.map(item => ({
+        label: item.label || item.time || item.date || item.month || item.year || "",
+        value: Number(item.value ?? item.price ?? item.avg ?? item.average ?? item.pun)
+      })).filter(item => item.label && !isNaN(item.value));
+    }
+
+    function extractPunValue(data) {
+      if (!data) return null;
+
+      const directValue =
+        data.value ??
+        data.price ??
+        data.avg ??
+        data.average ??
+        data.mean ??
+        data.pun ??
+        data.punAvg ??
+        data.averagePrice;
+
+      if (directValue !== null && directValue !== undefined && !isNaN(directValue)) {
+        return Number(directValue);
+      }
+
+      if (Array.isArray(data.points) && data.points.length > 0) {
+        const prices = data.points
+          .map(p => Number(p.price ?? p.value ?? p.avg ?? p.average ?? p.pun))
+          .filter(v => !isNaN(v));
+
+        if (prices.length > 0) {
+          return prices.reduce((sum, value) => sum + value, 0) / prices.length;
+        }
+      }
+
+      return null;
     }
 
     async function loadSummary() {
-  try {
-    const [todayRes, tomorrowRes] = await Promise.all([
-      fetch("/api/pun/today"),
-      fetch("/api/pun/tomorrow")
-    ]);
+      try {
+        const [todayRes, tomorrowRes] = await Promise.all([
+          fetch("/api/pun/today"),
+          fetch("/api/pun/tomorrow")
+        ]);
 
-    const today = await todayRes.json();
-    const tomorrow = await tomorrowRes.json();
+        const today = await todayRes.json();
+        const tomorrow = await tomorrowRes.json();
 
-    const todayValue = today.value ?? today.price ?? today.avg ?? today.average ?? today.pun;
-    const tomorrowValue = tomorrow.value ?? tomorrow.price ?? tomorrow.avg ?? tomorrow.average ?? tomorrow.pun;
+        const todayValue = extractPunValue(today);
+        const tomorrowValue = extractPunValue(tomorrow);
 
-    if (todayValue !== null && todayValue !== undefined && !isNaN(todayValue)) {
-      document.getElementById("todayMwh").textContent = formatMwh(todayValue);
-      document.getElementById("todayKwh").textContent = formatKwh(todayValue);
-    } else {
-      document.getElementById("todayMwh").textContent = "IN ATTESA";
-      document.getElementById("todayKwh").textContent = "DI PUBBLICAZIONE";
+        if (todayValue !== null) {
+          document.getElementById("todayMwh").textContent = formatMwh(todayValue);
+          document.getElementById("todayKwh").textContent = formatKwh(todayValue);
+        } else {
+          document.getElementById("todayMwh").textContent = "IN ATTESA";
+          document.getElementById("todayKwh").textContent = "DI PUBBLICAZIONE";
+        }
+
+        if (tomorrowValue !== null) {
+          document.getElementById("tomorrowMwh").textContent = formatMwh(tomorrowValue);
+          document.getElementById("tomorrowKwh").textContent = formatKwh(tomorrowValue);
+        } else {
+          document.getElementById("tomorrowMwh").textContent = "IN ATTESA";
+          document.getElementById("tomorrowKwh").textContent = "DI PUBBLICAZIONE";
+        }
+
+        document.getElementById("lastUpdate").textContent =
+          "Aggiornamento: " + new Date().toLocaleString("it-IT");
+
+      } catch (error) {
+        console.error("Errore caricamento riepilogo:", error);
+      }
     }
-
-    if (tomorrowValue !== null && tomorrowValue !== undefined && !isNaN(tomorrowValue)) {
-      document.getElementById("tomorrowMwh").textContent = formatMwh(tomorrowValue);
-      document.getElementById("tomorrowKwh").textContent = formatKwh(tomorrowValue);
-    } else {
-      document.getElementById("tomorrowMwh").textContent = "IN ATTESA";
-      document.getElementById("tomorrowKwh").textContent = "DI PUBBLICAZIONE";
-    }
-
-    document.getElementById("lastUpdate").textContent =
-      "Aggiornamento: " + new Date().toLocaleString("it-IT");
-
-  } catch (error) {
-    console.error("Errore caricamento riepilogo:", error);
-  }
-}
 
     async function loadChart(frame = "15m") {
       const errorBox = document.getElementById("chartError");
