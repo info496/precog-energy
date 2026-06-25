@@ -1,278 +1,339 @@
 <!DOCTYPE html>
 <html lang="it">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>PUN INDEX GME</title>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>PRECOG Energy - PUN INDEX GME</title>
 
-    <style>
-        body{
-            margin:0;
-            font-family:Arial,Helvetica,sans-serif;
-            background:#0f172a;
-            color:white;
-            min-height:100vh;
-            padding:20px;
-        }
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
-        .container{
-            width:100%;
-            max-width:1100px;
-            margin:0 auto;
-        }
+  <style>
+    body {
+      margin: 0;
+      font-family: Arial, Helvetica, sans-serif;
+      background: #0f172a;
+      color: white;
+      min-height: 100vh;
+      padding: 20px;
+    }
 
-        .card{
-            background:#1e293b;
-            padding:30px;
-            border-radius:20px;
-            text-align:center;
-            box-shadow:0 0 30px rgba(0,0,0,.4);
-            margin-bottom:20px;
-        }
+    .container {
+      width: 100%;
+      max-width: 1200px;
+      margin: 0 auto;
+    }
 
-        h1{
-            margin-top:0;
-            color:#38bdf8;
-        }
+    .card {
+      background: #1e293b;
+      padding: 28px;
+      border-radius: 20px;
+      box-shadow: 0 0 30px rgba(0, 0, 0, 0.35);
+      margin-bottom: 20px;
+    }
 
-        .box{
-            background:#334155;
-            padding:20px;
-            border-radius:12px;
-            margin:15px 0;
-        }
+    h1 {
+      margin-top: 0;
+      text-align: center;
+      color: #38bdf8;
+    }
 
-        .valore{
-            font-size:36px;
-            font-weight:bold;
-            color:#22c55e;
-            margin:15px 0 5px;
-        }
+    h2 {
+      margin-top: 0;
+      color: #7dd3fc;
+    }
 
-        .kwh{
-            font-size:18px;
-            color:#cbd5e1;
-        }
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+      gap: 20px;
+    }
 
-        .filters{
-            display:flex;
-            gap:15px;
-            justify-content:space-between;
-            align-items:end;
-            flex-wrap:wrap;
-            background:#334155;
-            padding:20px;
-            border-radius:12px;
-            margin-top:20px;
-        }
+    .box {
+      background: #334155;
+      padding: 20px;
+      border-radius: 16px;
+      text-align: center;
+    }
 
-        .filter-group{
-            display:flex;
-            flex-direction:column;
-            text-align:left;
-            gap:6px;
-            flex:1;
-            min-width:160px;
-        }
+    .label {
+      color: #cbd5e1;
+      font-size: 15px;
+      margin-bottom: 8px;
+    }
 
-        label{
-            font-size:14px;
-            font-weight:bold;
-            color:#cbd5e1;
-        }
+    .value {
+      font-size: 30px;
+      font-weight: bold;
+      color: #facc15;
+    }
 
-        input, select{
-            padding:10px;
-            border-radius:8px;
-            border:none;
-            font-size:15px;
-        }
+    .subvalue {
+      margin-top: 6px;
+      font-size: 16px;
+      color: #e2e8f0;
+    }
 
-        .chart-box{
-            background:#334155;
-            padding:20px;
-            border-radius:12px;
-            margin-top:20px;
-            min-height:260px;
-            display:flex;
-            justify-content:center;
-            align-items:center;
-            color:#cbd5e1;
-        }
+    .updated {
+      text-align: center;
+      color: #94a3b8;
+      font-size: 14px;
+      margin-top: 15px;
+    }
 
-        button{
-            padding:12px 25px;
-            border:none;
-            border-radius:10px;
-            background:#38bdf8;
-            color:white;
-            cursor:pointer;
-            font-size:16px;
-            margin-top:10px;
-        }
+    .toolbar {
+      display: flex;
+      justify-content: flex-end;
+      margin-bottom: 18px;
+    }
 
-        @media (max-width:600px){
-            .valore{
-                font-size:30px;
-            }
+    select {
+      background: #0f172a;
+      color: white;
+      border: 1px solid #38bdf8;
+      border-radius: 10px;
+      padding: 10px 14px;
+      font-size: 15px;
+    }
 
-            .filters{
-                flex-direction:column;
-                align-items:stretch;
-            }
-        }
-    </style>
+    .chart-wrapper {
+      position: relative;
+      width: 100%;
+      height: 430px;
+    }
+
+    canvas {
+      width: 100% !important;
+      height: 100% !important;
+    }
+
+    .error {
+      color: #f87171;
+      text-align: center;
+      margin-top: 10px;
+    }
+  </style>
 </head>
 
 <body>
-
-<div class="container">
+  <div class="container">
 
     <div class="card">
-        <h1>PUN INDEX GME</h1>
+      <h1>PRECOG Energy - PUN INDEX GME</h1>
 
+      <div class="grid">
         <div class="box">
-            <h3 id="dataLabel">Caricamento data...</h3>
-            <div id="pun" class="valore">...</div>
-            <div id="punKwh" class="kwh">...</div>
+          <div class="label">PUN DATA ORA</div>
+          <div id="latestMwh" class="value">-- €/MWh</div>
+          <div id="latestKwh" class="subvalue">-- €/kWh</div>
         </div>
 
         <div class="box">
-            <h3 id="dataLabelTomorrow">Caricamento data...</h3>
-            <div id="punTomorrow" class="valore">IN ATTESA DI PUBBLICAZIONE</div>
-            <div id="punTomorrowKwh" class="kwh">---</div>
+          <div class="label">PUN OGGI</div>
+          <div id="todayMwh" class="value">-- €/MWh</div>
+          <div id="todayKwh" class="subvalue">-- €/kWh</div>
         </div>
 
-        <button onclick="caricaPun()">Aggiorna</button>
+        <div class="box">
+          <div class="label">PUN D+1</div>
+          <div id="tomorrowMwh" class="value">IN ATTESA</div>
+          <div id="tomorrowKwh" class="subvalue">DI PUBBLICAZIONE</div>
+        </div>
+      </div>
+
+      <div id="lastUpdate" class="updated">Aggiornamento: --</div>
     </div>
 
     <div class="card">
-        <h1>Grafico PUN</h1>
+      <h2>Andamento PUN</h2>
 
-        <div class="filters">
-            <div class="filter-group">
-                <label for="dateFrom">DATA DA</label>
-                <input type="date" id="dateFrom">
-            </div>
+      <div class="toolbar">
+        <select id="frameSelect">
+          <option value="15m">15 minuti</option>
+          <option value="hourly">Orario</option>
+          <option value="daily">Giornaliero</option>
+          <option value="monthly">Mensile</option>
+          <option value="yearly">Annuale</option>
+        </select>
+      </div>
 
-            <div class="filter-group">
-                <label for="dateTo">DATA A</label>
-                <input type="date" id="dateTo">
-            </div>
+      <div class="chart-wrapper">
+        <canvas id="punChart"></canvas>
+      </div>
 
-            <div class="filter-group">
-                <label for="detail">DETTAGLIO</label>
-                <select id="detail">
-                    <option value="quarter">15 minuti</option>
-                    <option value="hour">Orario</option>
-                    <option value="daily">Giornaliero</option>
-                    <option value="monthly">Mensile</option>
-                    <option value="yearly">Annuale</option>
-                </select>
-            </div>
-
-            <div class="filter-group">
-                <button onclick="caricaGrafico()">Visualizza</button>
-            </div>
-        </div>
-
-        <div class="chart-box" id="chartBox">
-            Area grafico Chart.js - prossimo step
-        </div>
+      <div id="chartError" class="error"></div>
     </div>
 
-</div>
+  </div>
 
-<script>
-function formatDate(data){
-    return data.substring(6,8) + "/" +
-           data.substring(4,6) + "/" +
-           data.substring(0,4);
-}
+  <script>
+    let punChart = null;
 
-function formatPun(value){
-    return Number(value).toFixed(2) + " €/MWh";
-}
-
-function formatKwh(value){
-    return (value / 1000).toFixed(3) + " €/kWh";
-}
-
-function todayInputDate(){
-    const now = new Date();
-    const y = now.getFullYear();
-    const m = String(now.getMonth() + 1).padStart(2, "0");
-    const d = String(now.getDate()).padStart(2, "0");
-    return `${y}-${m}-${d}`;
-}
-
-async function caricaPun(){
-
-    const risposta = await fetch('/api/pun/today');
-    const oggi = await risposta.json();
-
-    if (oggi.published && oggi.data && oggi.data.average !== null) {
-        document.getElementById("dataLabel").innerHTML =
-            "PUN " + formatDate(oggi.data.date);
-
-        document.getElementById("pun").innerHTML =
-            formatPun(oggi.data.average);
-
-        document.getElementById("punKwh").innerHTML =
-            formatKwh(oggi.data.average);
-    } else {
-        document.getElementById("dataLabel").innerHTML =
-            "PUN " + formatDate(oggi.date);
-
-        document.getElementById("pun").innerHTML =
-            "IN ATTESA DI PUBBLICAZIONE";
-
-        document.getElementById("punKwh").innerHTML =
-            "---";
+    function formatMwh(value) {
+      if (value === null || value === undefined || isNaN(value)) return "-- €/MWh";
+      return Number(value).toFixed(3) + " €/MWh";
     }
 
-    const rispostaDomani = await fetch('/api/pun/tomorrow');
-    const domani = await rispostaDomani.json();
-
-    if (domani.published && domani.data && domani.data.average !== null) {
-        document.getElementById("dataLabelTomorrow").innerHTML =
-            "PUN " + formatDate(domani.data.date);
-
-        document.getElementById("punTomorrow").innerHTML =
-            formatPun(domani.data.average);
-
-        document.getElementById("punTomorrowKwh").innerHTML =
-            formatKwh(domani.data.average);
-    } else {
-        document.getElementById("dataLabelTomorrow").innerHTML =
-            "PUN " + formatDate(domani.date);
-
-        document.getElementById("punTomorrow").innerHTML =
-            "IN ATTESA DI PUBBLICAZIONE";
-
-        document.getElementById("punTomorrowKwh").innerHTML =
-            "---";
+    function formatKwh(value) {
+      if (value === null || value === undefined || isNaN(value)) return "-- €/kWh";
+      return (Number(value) / 1000).toFixed(3) + " €/kWh";
     }
-}
 
-function inizializzaFiltri(){
-    const oggi = todayInputDate();
-    document.getElementById("dateFrom").value = oggi;
-    document.getElementById("dateTo").value = oggi;
-}
+    function getChartUrl(frame) {
+      if (frame === "15m" || frame === "hourly") {
+        return `/api/pun/chart?frame=${frame}`;
+      }
 
-function caricaGrafico(){
-    const from = document.getElementById("dateFrom").value;
-    const to = document.getElementById("dateTo").value;
-    const detail = document.getElementById("detail").value;
+      return `/api/pun/history?frame=${frame}`;
+    }
 
-    document.getElementById("chartBox").innerHTML =
-        "Grafico richiesto: " + from + " → " + to + " | " + detail;
-}
+    function getChartTitle(frame) {
+      const titles = {
+        "15m": "PUN quartorario",
+        "hourly": "PUN orario",
+        "daily": "PUN giornaliero",
+        "monthly": "PUN mensile",
+        "yearly": "PUN annuale"
+      };
 
-inizializzaFiltri();
-caricaPun();
-</script>
+      return titles[frame] || "PUN";
+    }
 
+    function normalizeChartData(data) {
+  const rows = Array.isArray(data) ? data : data.points;
+
+  if (!Array.isArray(rows)) return [];
+
+  return rows.map(item => ({
+    label: item.label || item.time || item.date || item.month || item.year || "",
+    value: Number(item.value ?? item.price ?? item.avg ?? item.average ?? item.pun)
+  })).filter(item => item.label && !isNaN(item.value));
+    }
+
+    async function loadSummary() {
+      try {
+        const [latestRes, todayRes, tomorrowRes] = await Promise.all([
+          fetch("/api/pun/latest"),
+          fetch("/api/pun/today"),
+          fetch("/api/pun/tomorrow")
+        ]);
+
+        const latest = await latestRes.json();
+        const today = await todayRes.json();
+        const tomorrow = await tomorrowRes.json();
+
+        const latestValue = latest.value ?? latest.price ?? latest.avg ?? latest.pun;
+        const todayValue = today.value ?? today.price ?? today.avg ?? today.pun;
+        const tomorrowValue = tomorrow.value ?? tomorrow.price ?? tomorrow.avg ?? tomorrow.pun;
+
+        document.getElementById("latestMwh").textContent = formatMwh(latestValue);
+        document.getElementById("latestKwh").textContent = formatKwh(latestValue);
+
+        document.getElementById("todayMwh").textContent = formatMwh(todayValue);
+        document.getElementById("todayKwh").textContent = formatKwh(todayValue);
+
+        if (tomorrowValue !== null && tomorrowValue !== undefined && !isNaN(tomorrowValue)) {
+          document.getElementById("tomorrowMwh").textContent = formatMwh(tomorrowValue);
+          document.getElementById("tomorrowKwh").textContent = formatKwh(tomorrowValue);
+        }
+
+        document.getElementById("lastUpdate").textContent =
+          "Aggiornamento: " + new Date().toLocaleString("it-IT");
+
+      } catch (error) {
+        console.error("Errore caricamento riepilogo:", error);
+      }
+    }
+
+    async function loadChart(frame = "15m") {
+      const errorBox = document.getElementById("chartError");
+      errorBox.textContent = "";
+
+      try {
+        const res = await fetch(getChartUrl(frame));
+        const rawData = await res.json();
+        const data = normalizeChartData(rawData);
+
+        const labels = data.map(item => item.label);
+        const values = data.map(item => item.value);
+
+        const ctx = document.getElementById("punChart").getContext("2d");
+
+        if (punChart) {
+          punChart.destroy();
+        }
+
+        punChart = new Chart(ctx, {
+          type: "line",
+          data: {
+            labels,
+            datasets: [{
+              label: `${getChartTitle(frame)} - €/MWh`,
+              data: values,
+              tension: 0.25,
+              pointRadius: frame === "15m" || frame === "hourly" ? 2 : 3,
+              borderWidth: 2
+            }]
+          },
+          options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            interaction: {
+              mode: "index",
+              intersect: false
+            },
+            plugins: {
+              legend: {
+                labels: {
+                  color: "#e2e8f0"
+                }
+              },
+              tooltip: {
+                callbacks: {
+                  label: function(context) {
+                    return context.dataset.label + ": " + Number(context.raw).toFixed(3) + " €/MWh";
+                  }
+                }
+              }
+            },
+            scales: {
+              x: {
+                ticks: {
+                  color: "#cbd5e1",
+                  maxTicksLimit: 14
+                },
+                grid: {
+                  color: "rgba(148, 163, 184, 0.15)"
+                }
+              },
+              y: {
+                ticks: {
+                  color: "#cbd5e1"
+                },
+                grid: {
+                  color: "rgba(148, 163, 184, 0.15)"
+                },
+                title: {
+                  display: true,
+                  text: "€/MWh",
+                  color: "#e2e8f0"
+                }
+              }
+            }
+          }
+        });
+
+      } catch (error) {
+        console.error("Errore caricamento grafico:", error);
+        errorBox.textContent = "Errore nel caricamento del grafico.";
+      }
+    }
+
+    document.getElementById("frameSelect").addEventListener("change", function(event) {
+      loadChart(event.target.value);
+    });
+
+    loadSummary();
+    loadChart("15m");
+  </script>
 </body>
 </html>
