@@ -304,12 +304,22 @@ router.get('/history', (req, res) => {
 
   const files = loadHistoricalPunFiles();
 
-  const points =
-    frame === 'yearly'
-      ? buildYearlyHistoryChart(files)
-      : frame === 'monthly'
-        ? buildMonthlyHistoryChart(files)
-        : buildDailyHistoryChart(files);
+const from = req.query.from ? String(req.query.from) : null;
+const to = req.query.to ? String(req.query.to) : null;
+
+const filteredFiles = files.filter(item => {
+  if (!item || !item.date) return false;
+  if (from && item.date < from) return false;
+  if (to && item.date > to) return false;
+  return true;
+});
+
+ const points =
+  frame === 'yearly'
+    ? buildYearlyHistoryChart(filteredFiles)
+    : frame === 'monthly'
+      ? buildMonthlyHistoryChart(filteredFiles)
+      : buildDailyHistoryChart(filteredFiles);
 
   res.json({
     ok: true,
