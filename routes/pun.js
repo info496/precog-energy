@@ -236,7 +236,7 @@ function loadPunFileByDate(date) {
   return JSON.parse(fs.readFileSync(file, 'utf8'));
 }
 
-router.get('/chart', (req, res) => {
+router.get('/chart', async (req, res) => {
   const frame = String(req.query.frame || '15m').toLowerCase();
 
   const supportedFrames = ['15m', 'hourly'];
@@ -255,6 +255,10 @@ let data = null;
 
 if (requestedDate) {
   data = loadPunFileByDate(requestedDate);
+
+  if (!data) {
+    data = await fetchPunForDate(requestedDate);
+  }
 } else {
   const file = path.join(__dirname, '..', 'public', 'pun_latest.json');
 
