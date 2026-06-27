@@ -226,6 +226,16 @@ router.get('/latest', (req, res) => {
   res.json(JSON.parse(fs.readFileSync(file, 'utf8')));
 });
 
+function loadPunFileByDate(date) {
+  const file = path.join(__dirname, '..', 'storage', `pun_${date}.json`);
+
+  if (!fs.existsSync(file)) {
+    return null;
+  }
+
+  return JSON.parse(fs.readFileSync(file, 'utf8'));
+}
+
 router.get('/chart', (req, res) => {
   const frame = String(req.query.frame || '15m').toLowerCase();
 
@@ -239,16 +249,27 @@ router.get('/chart', (req, res) => {
     });
   }
 
+ const requestedDate = req.query.date ? String(req.query.date) : null;
+
+let data = null;
+
+if (requestedDate) {
+  data = loadPunFileByDate(requestedDate);
+} else {
   const file = path.join(__dirname, '..', 'public', 'pun_latest.json');
 
-  if (!fs.existsSync(file)) {
-    return res.status(404).json({
-      ok: false,
-      error: 'File PUN non disponibile'
-    });
+  if (fs.existsSync(file)) {
+    data = JSON.parse(fs.readFileSync(file, 'utf8'));
   }
+}
 
-  const data = JSON.parse(fs.readFileSync(file, 'utf8'));
+if (!data) {
+  return res.status(404).json({
+    ok: false,
+    error: 'File PUN non disponibile',
+    date: requestedDate
+  });
+}
 
   const points = frame === 'hourly'
     ? buildHourlyChart(data)
