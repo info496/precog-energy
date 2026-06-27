@@ -250,9 +250,15 @@
       return `${String(dateString).slice(0, 6)}01`;
     }
 
+    function firstDayOfYearYYYYMMDD(dateString) {
+      if (!dateString || String(dateString).length !== 8) return "";
+      return `${String(dateString).slice(0, 4)}0101`;
+    }
+
     function updateControls(frame) {
       const singleDateControls = document.getElementById("singleDateControls");
       const rangeDateControls = document.getElementById("rangeDateControls");
+      const chartDateValue = inputDateToYYYYMMDD(document.getElementById("chartDate").value);
 
       if (frame === "15m" || frame === "hourly") {
         singleDateControls.style.display = "flex";
@@ -260,9 +266,31 @@
         return;
       }
 
-      if (frame === "daily" || frame === "monthly") {
+      if (frame === "daily") {
         singleDateControls.style.display = "none";
         rangeDateControls.style.display = "flex";
+
+        if (chartDateValue) {
+          document.getElementById("fromDate").value =
+            yyyymmddToInputDate(firstDayOfMonthYYYYMMDD(chartDateValue));
+          document.getElementById("toDate").value =
+            yyyymmddToInputDate(chartDateValue);
+        }
+
+        return;
+      }
+
+      if (frame === "monthly") {
+        singleDateControls.style.display = "none";
+        rangeDateControls.style.display = "flex";
+
+        if (chartDateValue) {
+          document.getElementById("fromDate").value =
+            yyyymmddToInputDate(firstDayOfYearYYYYMMDD(chartDateValue));
+          document.getElementById("toDate").value =
+            yyyymmddToInputDate(chartDateValue);
+        }
+
         return;
       }
 
@@ -446,9 +474,7 @@
             },
             plugins: {
               legend: {
-                labels: {
-                  color: "#e2e8f0"
-                }
+                display: false
               },
               tooltip: {
                 callbacks: {
