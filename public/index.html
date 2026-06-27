@@ -80,11 +80,36 @@
       margin-top: 15px;
     }
 
-    .toolbar {
-      display: flex;
-      justify-content: flex-end;
-      margin-bottom: 18px;
+.toolbar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+}
+
+
+.period-controls {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin: 0;
+}
+
+    .period-controls label {
+      color: #cbd5e1;
+      font-size: 14px;
     }
+
+    .period-controls input{
+    background:#0f172a;
+    color:white;
+    border:1px solid #38bdf8;
+    border-radius:10px;
+    padding:10px 14px;
+    font-size:15px;
+    min-width:170px;
+    cursor:pointer;
+}
 
     select {
       background: #0f172a;
@@ -141,14 +166,20 @@
       <h2>Andamento PUN</h2>
 
       <div class="toolbar">
-        <select id="frameSelect">
-          <option value="15m">15 minuti</option>
-          <option value="hourly">Orario</option>
-          <option value="daily">Giornaliero</option>
-          <option value="monthly">Mensile</option>
-          <option value="yearly">Annuale</option>
-        </select>
-      </div>
+
+  <div id="singleDateControls" class="period-controls">
+    <input id="chartDate" type="date" min="2023-01-01">
+</div>
+
+    <select id="frameSelect">
+        <option value="15m">15 minuti</option>
+        <option value="hourly">Orario</option>
+        <option value="daily">Giornaliero</option>
+        <option value="monthly">Mensile</option>
+        <option value="yearly">Annuale</option>
+    </select>
+
+</div>
 
       <div class="chart-wrapper">
         <canvas id="punChart"></canvas>
@@ -182,9 +213,30 @@
       return `${day}/${month}/${year}`;
     }
 
+    function inputDateToYYYYMMDD(value) {
+  if (!value) return "";
+
+  if (value.includes("-")) {
+    return value.replaceAll("-", "");
+  }
+
+  if (value.includes("/")) {
+    const [day, month, year] = value.split("/");
+    return `${year}${month}${day}`;
+  }
+
+  return value;
+}
+
+    function yyyymmddToInputDate(value) {
+      if (!value || String(value).length !== 8) return "";
+      return `${value.slice(0, 4)}-${value.slice(4, 6)}-${value.slice(6, 8)}`;
+    }
+
     function getChartUrl(frame) {
       if (frame === "15m" || frame === "hourly") {
-        return `/api/pun/chart?frame=${frame}`;
+        const date = inputDateToYYYYMMDD(document.getElementById("chartDate").value);
+        return `/api/pun/chart?frame=${frame}&date=${date}`;
       }
       return `/api/pun/history?frame=${frame}`;
     }
@@ -266,6 +318,15 @@
 
         const todayValue = extractPunValue(today);
         const tomorrowValue = extractPunValue(tomorrow);
+
+        const defaultChartDate =
+          tomorrowValue !== null
+            ? (tomorrow.data?.date || tomorrow.date)
+            : (today.data?.date || today.date);
+
+        if (defaultChartDate) {
+          document.getElementById("chartDate").value = yyyymmddToInputDate(defaultChartDate);
+        }
 
         if (todayValue !== null) {
           document.getElementById("todayMwh").textContent = formatMwh(todayValue);
@@ -394,11 +455,21 @@
     }
 
     document.getElementById("frameSelect").addEventListener("change", function(event) {
-      loadChart(event.target.value);
+      const frame = event.target.value;
+
+      document.getElementById("singleDateControls").style.display =
+        frame === "15m" || frame === "hourly" ? "flex" : "none";
+
+      loadChart(frame);
     });
 
-    loadSummary();
-    loadChart("15m");
+    document.getElementById("chartDate").addEventListener("change", function() {
+      loadChart(document.getElementById("frameSelect").value);
+    });
+
+    loadSummary().then(() => {
+      loadChart("15m");
+    });
   </script>
 </body>
 </html>
