@@ -319,6 +319,22 @@ router.get('/history', (req, res) => {
 router.get('/today', async (req, res) => {
   try {
     const date = todayYYYYMMDD();
+
+    const localData = loadPunFileByDate(date);
+
+    if (
+      localData &&
+      typeof localData.average === 'number' &&
+      !Number.isNaN(localData.average) &&
+      localData.count > 0
+    ) {
+      return res.json({
+        ok: true,
+        published: true,
+        data: localData
+      });
+    }
+
     const data = await fetchPunForDate(date);
 
     if (!data || !data.average || data.count === 0) {
