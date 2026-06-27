@@ -3,7 +3,12 @@ const axios = require('axios');
 let cachedToken = null;
 let tokenTimestamp = 0;
 
-const TOKEN_VALIDITY_MS = 30 * 60 * 1000; // 30 minuti
+const TOKEN_VALIDITY_MS = 25 * 60 * 1000; // 25 minuti, più prudente
+
+function clearGmeToken() {
+  cachedToken = null;
+  tokenTimestamp = 0;
+}
 
 async function getGmeToken() {
   const now = Date.now();
@@ -44,6 +49,8 @@ async function getGmeToken() {
   const data = response.data;
 
   if (!data.success && !data.Success) {
+    clearGmeToken();
+
     throw new Error(
       `Login GME fallito: ${
         data.reason ||
@@ -56,9 +63,8 @@ async function getGmeToken() {
   const token = data.token || data.Token;
 
   if (!token) {
-    throw new Error(
-      'Token GME non presente nella risposta'
-    );
+    clearGmeToken();
+    throw new Error('Token GME non presente nella risposta');
   }
 
   cachedToken = token;
@@ -68,5 +74,6 @@ async function getGmeToken() {
 }
 
 module.exports = {
-  getGmeToken
+  getGmeToken,
+  clearGmeToken
 };
