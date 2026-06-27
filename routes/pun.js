@@ -1,3 +1,19 @@
+// =====================================================
+// PRECOG ENERGY
+// File......: routes/pun.js
+// Version...: 1.0.0
+// Data......: 27/06/2026
+// Autore....: Massimiliano Panipucci + ChatGPT
+//
+// Descrizione:
+// Gestione API PUN GME
+// - Ultimo dato disponibile
+// - Grafici 15 minuti e orari
+// - Storico giornaliero, mensile e annuale
+// - PUN Oggi e PUN D+1
+// - Aggiornamento manuale dati GME
+// =====================================================
+
 const express = require('express');
 const fs = require('fs');
 const path = require('path');
@@ -9,6 +25,15 @@ const {
 
 const router = express.Router();
 
+// =====================================================
+// DATE UTILITIES
+// -----------------------------------------------------
+// Funzioni di utilità per la gestione delle date nel
+// formato YYYYMMDD utilizzato dal GME.
+// =====================================================
+
+// Restituisce la data odierna nel formato YYYYMMDD.
+
 function todayYYYYMMDD() {
   const now = new Date();
   const y = now.getFullYear();
@@ -16,6 +41,8 @@ function todayYYYYMMDD() {
   const d = String(now.getDate()).padStart(2, '0');
   return `${y}${m}${d}`;
 }
+
+// Restituisce il giorno successivo nel formato YYYYMMDD.
 
 function nextDayYYYYMMDD(date) {
   const d = new Date(
@@ -30,6 +57,8 @@ function nextDayYYYYMMDD(date) {
     String(d.getDate()).padStart(2, '0')
   );
 }
+
+// Legge tutti i file PUN presenti nella cartella storage.
 
 function loadHistoricalPunFiles() {
   const storageDir = path.join(__dirname, '..', 'storage');
@@ -63,6 +92,12 @@ function loadHistoricalPunFiles() {
     .filter(Boolean);
 }
 
+
+// =====================================================
+// Raggruppa i valori e ne calcola la media.
+// =====================================================
+
+
 function averageGroups(groups, labelKey) {
   return Object.keys(groups)
     .sort()
@@ -71,6 +106,11 @@ function averageGroups(groups, labelKey) {
       price: Number((groups[label].sum / groups[label].count).toFixed(2))
     }));
 }
+
+// =====================================================
+// Costruisce il grafico quartorario (96 punti).
+// =====================================================
+
 
 function buildQuarterHourChart(data) {
   const groups = {};
@@ -97,6 +137,10 @@ function buildQuarterHourChart(data) {
   return averageGroups(groups, 'time');
 }
 
+// =====================================================
+// Costruisce il grafico orario (24 punti).
+// =====================================================
+
 function buildHourlyChart(data) {
   const groups = {};
 
@@ -120,6 +164,13 @@ function buildHourlyChart(data) {
   return averageGroups(groups, 'time');
 }
 
+// =====================================================
+// Costruisce il grafico giornaliero.
+// -----------------------------------------------------
+// Utilizza la media giornaliera del PUN già calcolata
+// e restituisce un punto per ogni giorno disponibile.
+// =====================================================
+
 function buildDailyHistoryChart(files) {
   return files
     .filter(item =>
@@ -135,6 +186,13 @@ function buildDailyHistoryChart(files) {
     }))
     .sort((a, b) => a.date.localeCompare(b.date));
 }
+
+// =====================================================
+// Costruisce il grafico mensile.
+// -----------------------------------------------------
+// Raggruppa le medie giornaliere per mese e calcola
+// il valore medio mensile del PUN.
+// =====================================================
 
 function buildMonthlyHistoryChart(files) {
   const groups = {};
@@ -176,6 +234,18 @@ function buildMonthlyHistoryChart(files) {
     }));
 }
 
+// =====================================================
+// Costruisce il grafico annuale.
+// -----------------------------------------------------
+// Raggruppa le medie giornaliere per anno e calcola
+// il valore medio annuale del PUN.
+//
+// NOTA:
+// Questa funzione verrà evoluta per supportare il
+// confronto mensile tra anni sovrapposti
+// (es. 2023-2024-2025-2026 nello stesso grafico).
+// =====================================================
+
 function buildYearlyHistoryChart(files) {
   const groups = {};
 
@@ -213,6 +283,22 @@ function buildYearlyHistoryChart(files) {
     }));
 }
 
+// =====================================================
+// API ROUTES
+// -----------------------------------------------------
+// Endpoint REST utilizzati dalla dashboard PRECOG Energy.
+// Tutte le risposte sono in formato JSON e vengono
+// consumate dal frontend della piattaforma.
+// =====================================================
+
+// -----------------------------------------------------
+// GET /api/pun/latest
+// -----------------------------------------------------
+// Restituisce l'ultimo file PUN disponibile salvato
+// nella cartella public.
+// Utilizzato dalla homepage.
+// -----------------------------------------------------
+
 router.get('/latest', (req, res) => {
   const file = path.join(__dirname, '..', 'public', 'pun_latest.json');
 
@@ -226,6 +312,11 @@ router.get('/latest', (req, res) => {
   res.json(JSON.parse(fs.readFileSync(file, 'utf8')));
 });
 
+// -----------------------------------------------------
+// Restituisce il file PUN relativo alla data richiesta.
+// Se il file non esiste restituisce null.
+// -----------------------------------------------------
+
 function loadPunFileByDate(date) {
   const file = path.join(__dirname, '..', 'storage', `pun_${date}.json`);
 
@@ -236,7 +327,21 @@ function loadPunFileByDate(date) {
   return JSON.parse(fs.readFileSync(file, 'utf8'));
 }
 
-router.get('/chart', async (req, res) => {
+// -----------------------------------------------------
+// GET /api/pun/chart
+// -----------------------------------------------------
+// Restituisce i dati per i grafici intraday.
+//
+// Parametri:
+// frame = 15m | hourly
+// date  = YYYYMMDD (opzionale)
+//
+// Se il file richiesto non è presente nello storage,
+// tenta automaticamente il recupero dal GME.
+// -----------------------------------------------------
+
+
+  router.get('/chart', async (req, res) => {
   const frame = String(req.query.frame || '15m').toLowerCase();
 
   const supportedFrames = ['15m', 'hourly'];
@@ -251,7 +356,7 @@ router.get('/chart', async (req, res) => {
 
  const requestedDate = req.query.date ? String(req.query.date) : null;
 
-let data = null;
+ let data = null;
 
 if (requestedDate) {
   data = loadPunFileByDate(requestedDate);
@@ -289,7 +394,22 @@ if (!data) {
   });
 });
 
-router.get('/history', (req, res) => {
+// -----------------------------------------------------
+// GET /api/pun/history
+// -----------------------------------------------------
+// Restituisce lo storico PUN.
+//
+// Parametri:
+// frame = daily | monthly | yearly
+// from  = YYYYMMDD
+// to    = YYYYMMDD
+//
+// I dati vengono letti esclusivamente dai file presenti
+// nello storage locale.
+// -----------------------------------------------------
+
+
+  router.get('/history', (req, res) => {
   const frame = String(req.query.frame || 'daily').toLowerCase();
 
   const supportedFrames = ['daily', 'monthly', 'yearly'];
@@ -304,8 +424,8 @@ router.get('/history', (req, res) => {
 
   const files = loadHistoricalPunFiles();
 
-const from = req.query.from ? String(req.query.from) : null;
-const to = req.query.to ? String(req.query.to) : null;
+ const from = req.query.from ? String(req.query.from) : null;
+ const to = req.query.to ? String(req.query.to) : null;
 
 const filteredFiles = files.filter(item => {
   if (!item || !item.date) return false;
@@ -329,6 +449,15 @@ const filteredFiles = files.filter(item => {
     points
   });
 });
+
+// -----------------------------------------------------
+// GET /api/pun/today
+// -----------------------------------------------------
+// Restituisce il PUN del giorno corrente.
+//
+// Cerca prima il file nello storage locale.
+// Se assente prova il download dal GME.
+// -----------------------------------------------------
 
 router.get('/today', async (req, res) => {
   try {
@@ -374,6 +503,16 @@ router.get('/today', async (req, res) => {
   }
 });
 
+// -----------------------------------------------------
+// GET /api/pun/tomorrow
+// -----------------------------------------------------
+// Restituisce il PUN del giorno successivo (D+1).
+//
+// Se il dato non è ancora stato pubblicato dal GME,
+// restituisce published = false.
+// -----------------------------------------------------
+
+
 router.get('/tomorrow', async (req, res) => {
   try {
     const today = todayYYYYMMDD();
@@ -404,6 +543,20 @@ router.get('/tomorrow', async (req, res) => {
   }
 });
 
+// -----------------------------------------------------
+// POST /api/pun/update
+// -----------------------------------------------------
+// Aggiorna manualmente il PUN.
+//
+// Body opzionale:
+// {
+//   "date": "YYYYMMDD"
+// }
+//
+// Se la data non viene specificata, aggiorna il giorno
+// corrente (o GME_TEST_DATE se configurato).
+// -----------------------------------------------------
+
 router.post('/update', async (req, res) => {
   try {
     const date = req.body?.date;
@@ -423,5 +576,9 @@ router.post('/update', async (req, res) => {
     });
   }
 });
+
+// =====================================================
+// EXPORT ROUTER
+// =====================================================
 
 module.exports = router;
