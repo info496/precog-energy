@@ -2,6 +2,7 @@ require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
 const punRoutes = require('./routes/pun');
+const telegramRoutes = require('./routes/telegram');
 const {
   updatePunToday,
   updatePunTomorrow
@@ -26,6 +27,7 @@ app.get('/api/health', (req, res) => {
 });
 
 app.use('/api/pun', punRoutes);
+app.use('/api/telegram', telegramRoutes);
 
 const cron = require('node-cron');
 
