@@ -2,7 +2,7 @@
 // PRECOG ENERGY
 // File......: routes/pun.js
 // Version...: 1.0.0
-// Data......: 27/06/2026
+// Data......: 28/06/2026
 // Autore....: Massimiliano Panipucci + ChatGPT
 //
 // Descrizione:

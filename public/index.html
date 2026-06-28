@@ -2,7 +2,7 @@
 PRECOG ENERGY
 File......: public/index.html
 Version...: 1.0.0
-Data......: 27/06/2026
+Data......: 28/06/2026
 Autore....: Massimiliano Panipucci + ChatGPT
 
 Descrizione:
@@ -227,26 +227,44 @@ Dashboard frontend PUN INDEX GME:
 
       <div class="toolbar">
 
-        <div id="singleDateControls" class="period-controls">
-          <input id="chartDate" type="date" min="2023-01-01">
-        </div>
+  <div id="singleDateControls" class="period-controls">
+    <input id="chartDate" type="date" min="2023-01-01">
+  </div>
 
-        <div id="rangeDateControls" class="period-controls" style="display:none;">
-          <span>Dal</span>
-          <input id="fromDate" type="date" min="2023-01-01">
-          <span>Al</span>
-          <input id="toDate" type="date" min="2023-01-01">
-        </div>
+  <div id="rangeDateControls" class="period-controls" style="display:none;">
+    <span>Dal</span>
+    <input id="fromDate" type="date" min="2023-01-01">
+    <span>Al</span>
+    <input id="toDate" type="date" min="2023-01-01">
+  </div>
 
-        <select id="frameSelect">
-          <option value="15m">15 minuti</option>
-          <option value="hourly">Orario</option>
-          <option value="daily">Giornaliero</option>
-          <option value="monthly">Mensile</option>
-          <option value="yearly">Annuale</option>
-        </select>
+  <div id="yearRangeControls" class="period-controls" style="display:none;">
+    <span>Dal</span>
+    <select id="fromYear">
+      <option value="2023" selected>2023</option>
+      <option value="2024">2024</option>
+      <option value="2025">2025</option>
+      <option value="2026">2026</option>
+    </select>
 
-      </div>
+    <span>Al</span>
+    <select id="toYear">
+      <option value="2023">2023</option>
+      <option value="2024">2024</option>
+      <option value="2025">2025</option>
+      <option value="2026" selected>2026</option>
+    </select>
+  </div>
+
+  <select id="frameSelect">
+    <option value="15m">15 minuti</option>
+    <option value="hourly">Orario</option>
+    <option value="daily">Giornaliero</option>
+    <option value="monthly">Mensile</option>
+    <option value="yearly">Annuale</option>
+  </select>
+
+</div>
 
       <div class="chart-wrapper">
         <canvas id="punChart"></canvas>
@@ -328,87 +346,94 @@ Dashboard frontend PUN INDEX GME:
       return `${String(dateString).slice(0, 4)}0101`;
     }
 
-    // =====================================================
-    // CHART CONTROLS
-    // -----------------------------------------------------
-    // Gestisce la visualizzazione dei controlli in base
-    // al Time Frame selezionato.
-    //
-    // 15m / hourly  -> data singola
-    // daily/monthly -> intervallo Dal/Al
-    // yearly        -> nessun controllo data nella versione attuale
-    // =====================================================
+   
+// =====================================================
+// CHART CONTROLS
+// -----------------------------------------------------
+// Gestisce la visualizzazione dei controlli in base
+// al Time Frame selezionato.
+// =====================================================
 
-    function updateControls(frame) {
-      const singleDateControls = document.getElementById("singleDateControls");
-      const rangeDateControls = document.getElementById("rangeDateControls");
-      const chartDateValue = inputDateToYYYYMMDD(document.getElementById("chartDate").value);
+function updateControls(frame) {
+  const singleDateControls = document.getElementById("singleDateControls");
+  const rangeDateControls = document.getElementById("rangeDateControls");
+  const yearRangeControls = document.getElementById("yearRangeControls");
+  const chartDateValue = inputDateToYYYYMMDD(document.getElementById("chartDate").value);
 
-      if (frame === "15m" || frame === "hourly") {
-        singleDateControls.style.display = "flex";
-        rangeDateControls.style.display = "none";
-        return;
-      }
+  singleDateControls.style.display = "none";
+  rangeDateControls.style.display = "none";
+  yearRangeControls.style.display = "none";
 
-      if (frame === "daily") {
-        singleDateControls.style.display = "none";
-        rangeDateControls.style.display = "flex";
+  if (frame === "15m" || frame === "hourly") {
+    singleDateControls.style.display = "flex";
+    return;
+  }
 
-        if (chartDateValue) {
-          document.getElementById("fromDate").value =
-            yyyymmddToInputDate(firstDayOfMonthYYYYMMDD(chartDateValue));
-          document.getElementById("toDate").value =
-            yyyymmddToInputDate(chartDateValue);
-        }
+  if (frame === "daily") {
+    rangeDateControls.style.display = "flex";
 
-        return;
-      }
-
-      if (frame === "monthly") {
-        singleDateControls.style.display = "none";
-        rangeDateControls.style.display = "flex";
-
-        if (chartDateValue) {
-          document.getElementById("fromDate").value =
-            yyyymmddToInputDate(firstDayOfYearYYYYMMDD(chartDateValue));
-          document.getElementById("toDate").value =
-            yyyymmddToInputDate(chartDateValue);
-        }
-
-        return;
-      }
-
-      singleDateControls.style.display = "none";
-      rangeDateControls.style.display = "none";
+    if (chartDateValue) {
+      document.getElementById("fromDate").value =
+        yyyymmddToInputDate(firstDayOfMonthYYYYMMDD(chartDateValue));
+      document.getElementById("toDate").value =
+        yyyymmddToInputDate(chartDateValue);
     }
 
-    // Costruisce la URL API corretta in base al Time Frame selezionato.
-    function getChartUrl(frame) {
-      if (frame === "15m" || frame === "hourly") {
-        const date = inputDateToYYYYMMDD(document.getElementById("chartDate").value);
-        return `/api/pun/chart?frame=${frame}&date=${date}`;
-      }
+    return;
+  }
 
-      if (frame === "daily" || frame === "monthly") {
-        const from = inputDateToYYYYMMDD(document.getElementById("fromDate").value);
-        const to = inputDateToYYYYMMDD(document.getElementById("toDate").value);
-        return `/api/pun/history?frame=${frame}&from=${from}&to=${to}`;
-      }
+  if (frame === "monthly") {
+    rangeDateControls.style.display = "flex";
 
-      return `/api/pun/history?frame=${frame}`;
+    if (chartDateValue) {
+      document.getElementById("fromDate").value =
+        yyyymmddToInputDate(firstDayOfYearYYYYMMDD(chartDateValue));
+      document.getElementById("toDate").value =
+        yyyymmddToInputDate(chartDateValue);
     }
 
-    // Restituisce il titolo descrittivo del grafico per il Time Frame selezionato.
-    function getChartTitle(frame) {
-      const titles = {
-        "15m": "PUN quartorario",
-        "hourly": "PUN orario",
-        "daily": "PUN giornaliero",
-        "monthly": "PUN mensile",
-        "yearly": "PUN annuale"
-      };
-      return titles[frame] || "PUN";
-    }
+    return;
+  }
+
+  if (frame === "yearly") {
+    yearRangeControls.style.display = "flex";
+  }
+}
+
+// Costruisce la URL API corretta in base al Time Frame selezionato.
+function getChartUrl(frame) {
+  if (frame === "15m" || frame === "hourly") {
+    const date = inputDateToYYYYMMDD(document.getElementById("chartDate").value);
+    return `/api/pun/chart?frame=${frame}&date=${date}`;
+  }
+
+  if (frame === "daily" || frame === "monthly") {
+    const from = inputDateToYYYYMMDD(document.getElementById("fromDate").value);
+    const to = inputDateToYYYYMMDD(document.getElementById("toDate").value);
+    return `/api/pun/history?frame=${frame}&from=${from}&to=${to}`;
+  }
+
+  if (frame === "yearly") {
+    const fromYear = document.getElementById("fromYear").value;
+    const toYear = document.getElementById("toYear").value;
+    return `/api/pun/history?frame=yearly&from=${fromYear}0101&to=${toYear}1231`;
+  }
+
+  return `/api/pun/history?frame=${frame}`;
+}
+
+// Restituisce il titolo descrittivo del grafico per il Time Frame selezionato.
+function getChartTitle(frame) {
+  const titles = {
+    "15m": "PUN quartorario",
+    "hourly": "PUN orario",
+    "daily": "PUN giornaliero",
+    "monthly": "PUN mensile",
+    "yearly": "PUN annuale"
+  };
+  return titles[frame] || "PUN";
+}
+
 
     // =====================================================
     // CHART DATA NORMALIZATION
@@ -703,6 +728,14 @@ async function loadChart(frame = "15m") {
     document.getElementById("toDate").addEventListener("change", function() {
       loadChart(document.getElementById("frameSelect").value);
     });
+
+document.getElementById("fromYear").addEventListener("change", function() {
+  loadChart(document.getElementById("frameSelect").value);
+});
+
+document.getElementById("toYear").addEventListener("change", function() {
+  loadChart(document.getElementById("frameSelect").value);
+});
 
     // =====================================================
     // INITIAL LOAD
