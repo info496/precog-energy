@@ -3,6 +3,7 @@ const fs = require('fs');
 const path = require('path');
 const { getPunMgp } = require('../services/gmeRequest');
 const { normalizePun } = require('../services/normalizePun');
+const { sendTelegramMessage } = require('../services/telegramAlert');
 
 function todayYYYYMMDD() {
   return dateToYYYYMMDD(new Date());
@@ -41,6 +42,57 @@ function savePunAsLatest(data) {
   );
 }
 
+function getTelegramStatePath() {
+  const storageDir = path.join(__dirname, '..', 'storage');
+  fs.mkdirSync(storageDir, { recursive: true });
+  return path.join(storageDir, 'telegram_alert_state.json');
+}
+
+function readTelegramState() {
+  const statePath = getTelegramStatePath();
+
+  if (!fs.existsSync(statePath)) {
+    return {};
+  }
+
+  return JSON.parse(fs.readFileSync(statePath, 'utf8'));
+}
+
+function writeTelegramState(state) {
+  const statePath = getTelegramStatePath();
+  fs.writeFileSync(statePath, JSON.stringify(state, null, 2));
+}
+
+async function sendPunPublishedAlert(data) {
+  const state = readTelegramState();
+
+  // Evita di inviare due volte per la stessa data
+  if (state.lastPublishedPun === data.date) {
+    return;
+  }
+
+  const punMWh = Number(data.average).toFixed(3);
+  const punKWh = (Number(data.average) / 1000).toFixed(6);
+
+  const date =
+    `${data.date.substring(6, 8)}/` +
+    `${data.date.substring(4, 6)}/` +
+    `${data.date.substring(0, 4)}`;
+
+  const message =
+`📢 PRECOG Energy
+
+⚡ PUN ${date} PUBBLICATO
+
+💶 ${punMWh} €/MWh
+💶 ${punKWh} €/kWh`;
+
+  await sendTelegramMessage(message);
+
+  state.lastPublishedPun = data.date;
+  writeTelegramState(state);
+}
+
 async function fetchPunForDate(dateYYYYMMDD) {
   const result = await getPunMgp(dateYYYYMMDD);
   return normalizePun(result.decoded, dateYYYYMMDD);
@@ -73,7 +125,11 @@ async function updatePunToday() {
 }
 
 async function updatePunTomorrow() {
-  return updatePunForDateStorageOnly(tomorrowYYYYMMDD());
+  const data = await updatePunForDateStorageOnly(tomorrowYYYYMMDD());
+
+  await sendPunPublishedAlert(data);
+
+  return data;
 }
 
 if (require.main === module) {

@@ -19,6 +19,7 @@ const fs = require('fs');
 const path = require('path');
 const {
   updatePunToday,
+  updatePunTomorrow,
   updatePunForDate,
   fetchPunForDate
 } = require('../cron/updatePun');
@@ -596,6 +597,30 @@ router.post('/update', async (req, res) => {
     const data = date
       ? await updatePunForDate(String(date))
       : await updatePunToday();
+
+    res.json({
+      ok: true,
+      data
+    });
+
+  } catch (err) {
+    res.status(500).json({
+      ok: false,
+      error: err.message
+    });
+  }
+});
+
+// -----------------------------------------------------
+// POST /api/pun/update-tomorrow
+// -----------------------------------------------------
+// Aggiorna manualmente il PUN D+1.
+// Se il PUN è disponibile invia anche la notifica Telegram.
+// -----------------------------------------------------
+
+router.post('/update-tomorrow', async (req, res) => {
+  try {
+    const data = await updatePunTomorrow();
 
     res.json({
       ok: true,
