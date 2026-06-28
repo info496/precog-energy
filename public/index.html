@@ -276,12 +276,68 @@ Dashboard frontend PUN INDEX GME:
   </div>
 
   <script>
+
     // =====================================================
-    // GLOBAL STATE
-    // -----------------------------------------------------
-    // Variabili globali usate dal frontend.
-    // =====================================================
-    let punChart = null;
+// GLOBAL STATE
+// -----------------------------------------------------
+// Variabili globali usate dal frontend.
+// =====================================================
+
+let punChart = null;
+
+const FIRST_AVAILABLE_YEAR = 2023;
+
+const YEAR_COLORS = {
+  "2023": "#94a3b8",
+  "2024": "#22c55e",
+  "2025": "#f59e0b",
+  "2026": "#38bdf8",
+  "2027": "#a855f7",
+  "2028": "#ef4444"
+};
+
+function getYearColor(year) {
+  return YEAR_COLORS[String(year)] || "#e2e8f0";
+}
+
+function populateYearControls(lastYear) {
+  const fromYear = document.getElementById("fromYear");
+  const toYear = document.getElementById("toYear");
+
+  if (!fromYear || !toYear) return;
+
+  const endYear = Number(lastYear) || new Date().getFullYear();
+
+  fromYear.innerHTML = "";
+  toYear.innerHTML = "";
+
+  for (let year = FIRST_AVAILABLE_YEAR; year <= endYear; year++) {
+    fromYear.add(new Option(String(year), String(year)));
+    toYear.add(new Option(String(year), String(year)));
+  }
+
+  fromYear.value = String(FIRST_AVAILABLE_YEAR);
+  toYear.value = String(endYear);
+}
+
+function getNormalizedYearRange() {
+  const fromYearSelect = document.getElementById("fromYear");
+  const toYearSelect = document.getElementById("toYear");
+
+  let fromYear = Number(fromYearSelect.value);
+  let toYear = Number(toYearSelect.value);
+
+  if (fromYear > toYear) {
+    const temp = fromYear;
+    fromYear = toYear;
+    toYear = temp;
+
+    fromYearSelect.value = String(fromYear);
+    toYearSelect.value = String(toYear);
+  }
+
+  return { fromYear, toYear };
+}
 
     // =====================================================
     // FORMAT HELPERS
@@ -401,7 +457,9 @@ function updateControls(frame) {
 }
 
 // Costruisce la URL API corretta in base al Time Frame selezionato.
+
 function getChartUrl(frame) {
+
   if (frame === "15m" || frame === "hourly") {
     const date = inputDateToYYYYMMDD(document.getElementById("chartDate").value);
     return `/api/pun/chart?frame=${frame}&date=${date}`;
@@ -410,16 +468,20 @@ function getChartUrl(frame) {
   if (frame === "daily" || frame === "monthly") {
     const from = inputDateToYYYYMMDD(document.getElementById("fromDate").value);
     const to = inputDateToYYYYMMDD(document.getElementById("toDate").value);
+
     return `/api/pun/history?frame=${frame}&from=${from}&to=${to}`;
   }
 
   if (frame === "yearly") {
-    const fromYear = document.getElementById("fromYear").value;
-    const toYear = document.getElementById("toYear").value;
+
+    const { fromYear, toYear } = getNormalizedYearRange();
+
     return `/api/pun/history?frame=yearly&from=${fromYear}0101&to=${toYear}1231`;
+
   }
 
   return `/api/pun/history?frame=${frame}`;
+
 }
 
 // Restituisce il titolo descrittivo del grafico per il Time Frame selezionato.
@@ -528,6 +590,8 @@ function getChartTitle(frame) {
         if (defaultChartDate) {
           document.getElementById("chartDate").value = yyyymmddToInputDate(defaultChartDate);
 
+document.getElementById("chartDate").value = yyyymmddToInputDate(defaultChartDate);
+
           const todayOrLastAvailableDate = today.data?.date || today.date || defaultChartDate;
           document.getElementById("fromDate").value =
             yyyymmddToInputDate(firstDayOfMonthYYYYMMDD(todayOrLastAvailableDate));
@@ -590,8 +654,10 @@ async function loadChart(frame = "15m") {
       labels = yearlyData.labels || [];
 
       datasets = (yearlyData.datasets || []).map(dataset => ({
-        label: dataset.label,
-        data: dataset.data,
+  label: dataset.label,
+  data: dataset.data,
+  borderColor: getYearColor(dataset.label),
+  backgroundColor: getYearColor(dataset.label),
         tension: 0,
         pointRadius: 0,
         pointHoverRadius: 4,
