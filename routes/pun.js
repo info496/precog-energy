@@ -235,21 +235,24 @@ function buildMonthlyHistoryChart(files) {
 }
 
 // =====================================================
-// Costruisce il grafico annuale.
+// Costruisce il grafico annuale sovrapposto.
 // -----------------------------------------------------
-// Raggruppa le medie giornaliere per anno e calcola
-// il valore medio annuale del PUN.
-//
-// NOTA:
-// Questa funzione verrà evoluta per supportare il
-// confronto mensile tra anni sovrapposti
-// (es. 2023-2024-2025-2026 nello stesso grafico).
+// Raggruppa le medie giornaliere per anno e per mese.
+// Restituisce un dataset separato per ogni anno,
+// così il frontend può disegnare più linee sovrapposte.
 // =====================================================
 
 function buildYearlyHistoryChart(files) {
+
+  const monthLabels = [
+    'GEN', 'FEB', 'MAR', 'APR', 'MAG', 'GIU',
+    'LUG', 'AGO', 'SET', 'OTT', 'NOV', 'DIC'
+  ];
+
   const groups = {};
 
   for (const item of files) {
+
     if (
       !item ||
       !item.date ||
@@ -260,27 +263,48 @@ function buildYearlyHistoryChart(files) {
     }
 
     const year = item.date.substring(0, 4);
+    const month = Number(item.date.substring(4, 6)) - 1;
 
     if (!groups[year]) {
-      groups[year] = {
-        sum: 0,
-        count: 0
-      };
+      groups[year] = Array.from(
+        { length: 12 },
+        () => ({
+          sum: 0,
+          count: 0
+        })
+      );
     }
 
-    groups[year].sum += item.average;
-    groups[year].count += 1;
+    groups[year][month].sum += item.average;
+    groups[year][month].count++;
   }
 
-  return Object.keys(groups)
+  const datasets = Object.keys(groups)
     .sort()
     .map(year => ({
-      year,
-      price: Number(
-        (groups[year].sum / groups[year].count).toFixed(2)
-      ),
-      count: groups[year].count
+
+      label: year,
+
+      data: groups[year].map(m => {
+
+        if (!m.count) return null;
+
+        return Number(
+          (m.sum / m.count).toFixed(2)
+        );
+
+      })
+
     }));
+
+  return {
+
+    labels: monthLabels,
+
+    datasets
+
+  };
+
 }
 
 // =====================================================
@@ -384,14 +408,23 @@ if (!data) {
     ? buildHourlyChart(data)
     : buildQuarterHourChart(data);
 
-  res.json({
+  if (frame === 'yearly') {
+  return res.json({
     ok: true,
     frame,
-    date: data.date,
-    source: data.source,
     unit: '€/MWh',
-    points
+    labels: points.labels,
+    datasets: points.datasets
   });
+}
+
+res.json({
+  ok: true,
+  frame,
+  unit: '€/MWh',
+  count: points.length,
+  points
+});
 });
 
 // -----------------------------------------------------
