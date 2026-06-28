@@ -174,28 +174,93 @@ Dashboard frontend PUN INDEX GME:
       font-size: 15px;
     }
 
-    /* =====================================================
-       CHART AREA
-       -----------------------------------------------------
-       Area contenente il canvas Chart.js.
-       ===================================================== */
+  
+/* =====================================================
+   CHART AREA
+   -----------------------------------------------------
+   Area contenente il canvas Chart.js.
+   ===================================================== */
 
-    .chart-wrapper {
-      position: relative;
-      width: 100%;
-      height: 430px;
-    }
+.chart-wrapper {
+  position: relative;
+  width: 100%;
+  height: 430px;
+}
 
-    canvas {
-      width: 100% !important;
-      height: 100% !important;
-    }
+canvas {
+  width: 100% !important;
+  height: 100% !important;
+}
 
-    .error {
-      color: #f87171;
-      text-align: center;
-      margin-top: 10px;
-    }
+/* =====================================================
+   KPI PANEL
+   -----------------------------------------------------
+   KPI principali del periodo selezionato.
+   ===================================================== */
+
+.kpi-panel{
+  margin-top:20px;
+  background:#0f172a;
+  border:1px solid #334155;
+  border-radius:16px;
+  padding:20px;
+}
+
+.kpi-panel h3{
+  margin:0 0 18px;
+  color:#7dd3fc;
+  font-size:18px;
+}
+
+.kpi-grid{
+  display:grid;
+  grid-template-columns:repeat(4,1fr);
+  gap:14px;
+}
+
+.kpi-card{
+  background:#1e293b;
+  border-radius:12px;
+  padding:16px;
+  border:1px solid #334155;
+}
+
+.kpi-title{
+  font-size:13px;
+  color:#94a3b8;
+}
+
+.kpi-value{
+  margin-top:8px;
+  font-size:22px;
+  font-weight:bold;
+  color:#f8fafc;
+}
+
+.kpi-subvalue{
+  margin-top:4px;
+  font-size:14px;
+  color:#38bdf8;
+}
+
+@media (max-width: 900px){
+  .kpi-grid{
+    grid-template-columns:repeat(2,1fr);
+  }
+}
+
+@media (max-width: 520px){
+  .kpi-grid{
+    grid-template-columns:1fr;
+  }
+}
+
+.error{
+  color:#f87171;
+  text-align:center;
+  margin-top:10px;
+}
+
   </style>
 </head>
 
@@ -267,11 +332,44 @@ Dashboard frontend PUN INDEX GME:
 </div>
 
       <div class="chart-wrapper">
-        <canvas id="punChart"></canvas>
-      </div>
+    <canvas id="punChart"></canvas>
+</div>
 
-      <div id="chartError" class="error"></div>
+<div class="kpi-panel" id="kpiPanel">
+
+    <h3>KPI periodo selezionato</h3>
+
+    <div class="kpi-grid">
+
+        <div class="kpi-card">
+            <div class="kpi-title">Minimo</div>
+            <div id="kpiMin" class="kpi-value">-</div>
+            <div id="kpiMinKwh" class="kpi-subvalue">-</div>
+        </div>
+
+        <div class="kpi-card">
+            <div class="kpi-title">Massimo</div>
+            <div id="kpiMax" class="kpi-value">-</div>
+            <div id="kpiMaxKwh" class="kpi-subvalue">-</div>
+        </div>
+
+        <div class="kpi-card">
+            <div class="kpi-title">Media</div>
+            <div id="kpiAvg" class="kpi-value">-</div>
+            <div id="kpiAvgKwh" class="kpi-subvalue">-</div>
+        </div>
+
+        <div class="kpi-card">
+            <div class="kpi-title">Trend periodo precedente</div>
+            <div id="kpiDelta" class="kpi-value">-</div>
+            <div id="kpiDeltaKwh" class="kpi-subvalue">-</div>
+        </div>
+
     </div>
+
+</div>
+
+<div id="chartError" class="error"></div>
 
   </div>
 
