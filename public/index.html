@@ -647,6 +647,43 @@ function getChartTitle(frame) {
   return null;
 }
 
+
+// =====================================================
+// KPI CALCULATION
+// -----------------------------------------------------
+// Calcola i KPI principali usando gli stessi valori
+// visualizzati nel grafico.
+// =====================================================
+
+function updateKpiPanel(values) {
+  const cleanValues = values
+    .map(value => Number(value))
+    .filter(value => !isNaN(value));
+
+  if (cleanValues.length === 0) {
+    document.getElementById("kpiMin").textContent = "-";
+    document.getElementById("kpiMinKwh").textContent = "-";
+    document.getElementById("kpiMax").textContent = "-";
+    document.getElementById("kpiMaxKwh").textContent = "-";
+    document.getElementById("kpiAvg").textContent = "-";
+    document.getElementById("kpiAvgKwh").textContent = "-";
+    return;
+  }
+
+  const min = Math.min(...cleanValues);
+  const max = Math.max(...cleanValues);
+  const avg = cleanValues.reduce((sum, value) => sum + value, 0) / cleanValues.length;
+
+  document.getElementById("kpiMin").textContent = formatMwh(min);
+  document.getElementById("kpiMinKwh").textContent = formatKwh(min);
+
+  document.getElementById("kpiMax").textContent = formatMwh(max);
+  document.getElementById("kpiMaxKwh").textContent = formatKwh(max);
+
+  document.getElementById("kpiAvg").textContent = formatMwh(avg);
+  document.getElementById("kpiAvgKwh").textContent = formatKwh(avg);
+}
+
     // =====================================================
     // SUMMARY CARDS
     // -----------------------------------------------------
@@ -858,6 +895,8 @@ async function loadChart(frame = "15m") {
         }
       }
     });
+
+updateKpiPanel(allValues);
 
   } catch (error) {
     console.error("Errore caricamento grafico:", error);
