@@ -1,3 +1,19 @@
+<!-- =====================================================
+PRECOG ENERGY
+File......: public/index.html
+Version...: 1.0.0
+Data......: 27/06/2026
+Autore....: Massimiliano Panipucci + ChatGPT
+
+Descrizione:
+Dashboard frontend PUN INDEX GME:
+- Card PUN oggi e PUN D+1
+- Grafico unico con selezione Time Frame
+- Selettori data singola e intervallo Dal/Al
+- Visualizzazione valori in €/MWh e €/kWh
+- Rendering grafici con Chart.js
+===================================================== -->
+
 <!DOCTYPE html>
 <html lang="it">
 <head>
@@ -8,6 +24,12 @@
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
   <style>
+    /* =====================================================
+       GLOBAL STYLE
+       -----------------------------------------------------
+       Stile generale della pagina: font, sfondo, colori
+       principali e layout base.
+       ===================================================== */
     body {
       margin: 0;
       font-family: Arial, Helvetica, sans-serif;
@@ -17,11 +39,23 @@
       padding: 20px;
     }
 
+    /* =====================================================
+       LAYOUT CONTAINER
+       -----------------------------------------------------
+       Contenitore principale della dashboard.
+       ===================================================== */
+
     .container {
       width: 100%;
       max-width: 1200px;
       margin: 0 auto;
     }
+
+    /* =====================================================
+       CARD STYLE
+       -----------------------------------------------------
+       Riquadri principali della dashboard.
+       ===================================================== */
 
     .card {
       background: #1e293b;
@@ -41,6 +75,12 @@
       margin-top: 0;
       color: #7dd3fc;
     }
+
+    /* =====================================================
+       SUMMARY GRID
+       -----------------------------------------------------
+       Griglia delle card PUN oggi e PUN D+1.
+       ===================================================== */
 
     .grid {
       display: grid;
@@ -79,6 +119,15 @@
       font-size: 14px;
       margin-top: 15px;
     }
+
+    /* =====================================================
+       CHART TOOLBAR
+       -----------------------------------------------------
+       Barra superiore del grafico:
+       - selettore data singola
+       - selettore intervallo Dal/Al
+       - selettore Time Frame
+       ===================================================== */
 
 .toolbar {
     display: flex;
@@ -124,6 +173,12 @@
       padding: 10px 14px;
       font-size: 15px;
     }
+
+    /* =====================================================
+       CHART AREA
+       -----------------------------------------------------
+       Area contenente il canvas Chart.js.
+       ===================================================== */
 
     .chart-wrapper {
       position: relative;
@@ -203,18 +258,32 @@
   </div>
 
   <script>
+    // =====================================================
+    // GLOBAL STATE
+    // -----------------------------------------------------
+    // Variabili globali usate dal frontend.
+    // =====================================================
     let punChart = null;
 
+    // =====================================================
+    // FORMAT HELPERS
+    // -----------------------------------------------------
+    // Funzioni di formattazione dei valori PUN e delle date.
+    // =====================================================
+
+    // Converte un valore numerico in formato €/MWh.
     function formatMwh(value) {
       if (value === null || value === undefined || isNaN(value)) return "-- €/MWh";
       return Number(value).toFixed(3) + " €/MWh";
     }
 
+    // Converte un valore €/MWh nel corrispondente valore €/kWh.
     function formatKwh(value) {
       if (value === null || value === undefined || isNaN(value)) return "-- €/kWh";
       return (Number(value) / 1000).toFixed(3) + " €/kWh";
     }
 
+    // Converte una data YYYYMMDD in formato leggibile DD/MM/YYYY.
     function formatDateLabel(dateString) {
       if (!dateString || String(dateString).length !== 8) return null;
 
@@ -225,6 +294,7 @@
       return `${day}/${month}/${year}`;
     }
 
+    // Converte una data input HTML o DD/MM/YYYY in formato YYYYMMDD.
     function inputDateToYYYYMMDD(value) {
       if (!value) return "";
 
@@ -240,20 +310,34 @@
       return value;
     }
 
+    // Converte una data YYYYMMDD nel formato richiesto da input type=date.
     function yyyymmddToInputDate(value) {
       if (!value || String(value).length !== 8) return "";
       return `${value.slice(0, 4)}-${value.slice(4, 6)}-${value.slice(6, 8)}`;
     }
 
+    // Restituisce il primo giorno del mese della data indicata.
     function firstDayOfMonthYYYYMMDD(dateString) {
       if (!dateString || String(dateString).length !== 8) return "";
       return `${String(dateString).slice(0, 6)}01`;
     }
 
+    // Restituisce il primo giorno dell'anno della data indicata.
     function firstDayOfYearYYYYMMDD(dateString) {
       if (!dateString || String(dateString).length !== 8) return "";
       return `${String(dateString).slice(0, 4)}0101`;
     }
+
+    // =====================================================
+    // CHART CONTROLS
+    // -----------------------------------------------------
+    // Gestisce la visualizzazione dei controlli in base
+    // al Time Frame selezionato.
+    //
+    // 15m / hourly  -> data singola
+    // daily/monthly -> intervallo Dal/Al
+    // yearly        -> nessun controllo data nella versione attuale
+    // =====================================================
 
     function updateControls(frame) {
       const singleDateControls = document.getElementById("singleDateControls");
@@ -298,6 +382,7 @@
       rangeDateControls.style.display = "none";
     }
 
+    // Costruisce la URL API corretta in base al Time Frame selezionato.
     function getChartUrl(frame) {
       if (frame === "15m" || frame === "hourly") {
         const date = inputDateToYYYYMMDD(document.getElementById("chartDate").value);
@@ -313,6 +398,7 @@
       return `/api/pun/history?frame=${frame}`;
     }
 
+    // Restituisce il titolo descrittivo del grafico per il Time Frame selezionato.
     function getChartTitle(frame) {
       const titles = {
         "15m": "PUN quartorario",
@@ -323,6 +409,14 @@
       };
       return titles[frame] || "PUN";
     }
+
+    // =====================================================
+    // CHART DATA NORMALIZATION
+    // -----------------------------------------------------
+    // Uniforma le risposte API in un formato comune:
+    // { label, value }
+    // usato da Chart.js per tutti i grafici standard.
+    // =====================================================
 
     function normalizeChartData(data) {
       const rows = Array.isArray(data) ? data : data.points;
@@ -335,7 +429,8 @@
       })).filter(item => item.label && !isNaN(item.value));
     }
 
-   function extractPunValue(response) {
+    // Estrae il valore medio PUN da risposte API con formati diversi.
+    function extractPunValue(response) {
   if (!response) return null;
 
   const data = response.data || response;
@@ -366,6 +461,15 @@
 
   return null;
 }
+
+    // =====================================================
+    // SUMMARY CARDS
+    // -----------------------------------------------------
+    // Carica e aggiorna le card superiori:
+    // - PUN oggi
+    // - PUN D+1
+    // Imposta anche la data di default del grafico.
+    // =====================================================
 
     async function loadSummary() {
       try {
@@ -429,6 +533,13 @@
         console.error("Errore caricamento riepilogo:", error);
       }
     }
+
+    // =====================================================
+    // CHART LOADER
+    // -----------------------------------------------------
+    // Recupera i dati dal backend e disegna il grafico
+    // Chart.js in base al Time Frame selezionato.
+    // =====================================================
 
     async function loadChart(frame = "15m") {
       const errorBox = document.getElementById("chartError");
@@ -547,6 +658,15 @@ borderWidth: 2.5
       }
     }
 
+    // =====================================================
+    // EVENT LISTENERS
+    // -----------------------------------------------------
+    // Aggiornano il grafico quando l'utente cambia:
+    // - Time Frame
+    // - data singola
+    // - data iniziale/finale
+    // =====================================================
+
     document.getElementById("frameSelect").addEventListener("change", function(event) {
       const frame = event.target.value;
       updateControls(frame);
@@ -564,6 +684,13 @@ borderWidth: 2.5
     document.getElementById("toDate").addEventListener("change", function() {
       loadChart(document.getElementById("frameSelect").value);
     });
+
+    // =====================================================
+    // INITIAL LOAD
+    // -----------------------------------------------------
+    // Imposta i controlli iniziali e carica riepilogo +
+    // grafico 15 minuti.
+    // =====================================================
 
     updateControls("15m");
 
