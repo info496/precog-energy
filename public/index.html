@@ -534,129 +534,148 @@ Dashboard frontend PUN INDEX GME:
       }
     }
 
-    // =====================================================
-    // CHART LOADER
-    // -----------------------------------------------------
-    // Recupera i dati dal backend e disegna il grafico
-    // Chart.js in base al Time Frame selezionato.
-    // =====================================================
+ // =====================================================
+// CHART LOADER
+// -----------------------------------------------------
+// Recupera i dati dal backend e disegna il grafico
+// Chart.js in base al Time Frame selezionato.
+// =====================================================
 
-    async function loadChart(frame = "15m") {
-      const errorBox = document.getElementById("chartError");
-      errorBox.textContent = "";
+async function loadChart(frame = "15m") {
+  const errorBox = document.getElementById("chartError");
+  errorBox.textContent = "";
 
-      try {
-        const res = await fetch(getChartUrl(frame));
-        const rawData = await res.json();
+  try {
+    const res = await fetch(getChartUrl(frame));
+    const rawData = await res.json();
 
-        if (!res.ok || rawData.ok === false) {
-          throw new Error(rawData.error || "Errore API grafico");
-        }
+    if (!res.ok || rawData.ok === false) {
+      throw new Error(rawData.error || "Errore API grafico");
+    }
 
-        const data = normalizeChartData(rawData);
+    let labels = [];
+    let datasets = [];
+    let allValues = [];
 
-        const labels = data.map(item => item.label);
-        const values = data.map(item => item.value);
+    if (frame === "yearly") {
+      const yearlyData = rawData.labels
+        ? rawData
+        : rawData.points;
 
-        const ctx = document.getElementById("punChart").getContext("2d");
+      labels = yearlyData.labels || [];
 
-        if (punChart) {
-          punChart.destroy();
-        }
+      datasets = (yearlyData.datasets || []).map(dataset => ({
+        label: dataset.label,
+        data: dataset.data,
+        tension: 0,
+        pointRadius: 0,
+        pointHoverRadius: 4,
+        borderWidth: 2.5,
+        fill: false
+      }));
 
-        punChart = new Chart(ctx, {
-          type: "line",
-          data: {
-            labels,
-            datasets: [{
-              label: "PUN INDEX",
-              data: values,
-             
-tension: 0,
-pointRadius: 0,
-pointHoverRadius: 4,
-borderWidth: 2.5
+      allValues = datasets
+        .flatMap(dataset => dataset.data || [])
+        .filter(value => value !== null && !isNaN(value));
 
-            }]
+    } else {
+      const data = normalizeChartData(rawData);
+
+      labels = data.map(item => item.label);
+      const values = data.map(item => item.value);
+
+      allValues = values;
+
+      datasets = [{
+        label: "PUN INDEX",
+        data: values,
+        tension: 0,
+        pointRadius: 0,
+        pointHoverRadius: 4,
+        borderWidth: 2.5
+      }];
+    }
+
+    const ctx = document.getElementById("punChart").getContext("2d");
+
+    if (punChart) {
+      punChart.destroy();
+    }
+
+    punChart = new Chart(ctx, {
+      type: "line",
+      data: {
+        labels,
+        datasets
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        interaction: {
+          mode: "index",
+          intersect: false
+        },
+        plugins: {
+          legend: {
+            display: frame === "yearly",
+            labels: {
+              color: "#e2e8f0"
+            }
           },
-          options: {
-            responsive: true,
-            maintainAspectRatio: false,
-            interaction: {
-              mode: "index",
-              intersect: false
-            },
-            plugins: {
-              legend: {
-                display: false
-              },
-              tooltip: {
-                callbacks: {
-                  title: function(context) {
-                    const label = context[0].label;
-
-                    if (frame === "monthly") {
-                      const [year, month] = label.split("-");
-                      const mesi = [
-                        "Gennaio", "Febbraio", "Marzo", "Aprile", "Maggio", "Giugno",
-                        "Luglio", "Agosto", "Settembre", "Ottobre", "Novembre", "Dicembre"
-                      ];
-                      return `${mesi[Number(month) - 1]} ${year}`;
-                    }
-
-                    return label;
-                  },
-                  label: function(context) {
-                    const value = Number(context.raw);
-                    return [
-                      value.toFixed(3) + " €/MWh",
-                      (value / 1000).toFixed(3) + " €/kWh"
-                    ];
-                  }
-                }
-              }
-            },
-            scales: {
-              x: {
-                ticks: {
-                  color: "#cbd5e1",
-                  maxTicksLimit: 14
-                },
-                grid: {
-                  color: "rgba(148, 163, 184, 0.15)"
-                }
-              },
-
-              y: {
-                beginAtZero: true,
-                min: 0,
-                suggestedMax: values.length > 0
-                  ? Math.ceil(Math.max(...values) / 20) * 20
-                  : undefined,
-
-                ticks: {
-                  color: "#cbd5e1"
-                },
-
-                grid: {
-                  color: "rgba(148, 163, 184, 0.15)"
-                },
-
-                title: {
-                  display: true,
-                  text: "€/MWh",
-                  color: "#e2e8f0"
-                }
+          tooltip: {
+            callbacks: {
+              label: function(context) {
+                const value = Number(context.raw);
+                return [
+                  `${context.dataset.label}: ${value.toFixed(3)} €/MWh`,
+                  (value / 1000).toFixed(3) + " €/kWh"
+                ];
               }
             }
           }
-        });
+        },
+        scales: {
+          x: {
+            ticks: {
+              color: "#cbd5e1",
+              maxTicksLimit: frame === "yearly" ? 12 : 14
+            },
+            grid: {
+              color: "rgba(148, 163, 184, 0.15)"
+            }
+          },
 
-      } catch (error) {
-        console.error("Errore caricamento grafico:", error);
-        errorBox.textContent = "Errore nel caricamento del grafico.";
+          y: {
+            beginAtZero: true,
+            min: 0,
+            suggestedMax: allValues.length > 0
+              ? Math.ceil(Math.max(...allValues) / 20) * 20
+              : undefined,
+
+            ticks: {
+              color: "#cbd5e1"
+            },
+
+            grid: {
+              color: "rgba(148, 163, 184, 0.15)"
+            },
+
+            title: {
+              display: true,
+              text: "€/MWh",
+              color: "#e2e8f0"
+            }
+          }
+        }
       }
-    }
+    });
+
+  } catch (error) {
+    console.error("Errore caricamento grafico:", error);
+    errorBox.textContent = "Errore nel caricamento del grafico.";
+  }
+}
+
 
     // =====================================================
     // EVENT LISTENERS
