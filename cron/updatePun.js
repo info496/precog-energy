@@ -71,8 +71,14 @@ async function sendPunPublishedAlert(data) {
     return;
   }
 
-  const punMWh = Number(data.average).toFixed(3);
-  const punKWh = (Number(data.average) / 1000).toFixed(6);
+   const avgMWh = Number(data.average).toFixed(3);
+  const avgKWh = (Number(data.average) / 1000).toFixed(6);
+
+  const maxMWh = Number(data.maxPrice).toFixed(3);
+  const maxKWh = (Number(data.maxPrice) / 1000).toFixed(6);
+
+  const minMWh = Number(data.minPrice).toFixed(3);
+  const minKWh = (Number(data.minPrice) / 1000).toFixed(6);
 
   const date =
     `${data.date.substring(6, 8)}/` +
@@ -84,8 +90,20 @@ async function sendPunPublishedAlert(data) {
 
 ⚡ PUN ${date} PUBBLICATO
 
-💶 ${punMWh} €/MWh
-💶 ${punKWh} €/kWh`;
+💶 Medio
+${avgMWh} €/MWh
+${avgKWh} €/kWh
+
+📈 Massimo
+${maxMWh} €/MWh  (${data.maxTime})
+${maxKWh} €/kWh
+
+📉 Minimo
+${minMWh} €/MWh  (${data.minTime})
+${minKWh} €/kWh
+
+──────────────────
+⚡ Powered by PRECOG Energy`;
 
   await sendTelegramMessage(message);
 

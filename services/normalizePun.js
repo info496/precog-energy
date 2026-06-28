@@ -49,15 +49,44 @@ function normalizePun(raw, dateYYYYMMDD) {
       ? prices.reduce((a, b) => a + b, 0) / prices.length
       : null;
 
+function periodToTime(period) {
+  const p = Number(period);
+
+  if (!p || Number.isNaN(p)) {
+    return null;
+  }
+
+  const minutes = ((p - 1) % 96) * 15;
+  const hh = String(Math.floor(minutes / 60)).padStart(2, '0');
+  const mm = String(minutes % 60).padStart(2, '0');
+
+  return `${hh}:${mm}`;
+}
+
+const sortedByPrice = useful
+  .filter(r => typeof r.price === 'number' && !Number.isNaN(r.price))
+  .sort((a, b) => a.price - b.price);
+
+const minRow = sortedByPrice[0] || null;
+const maxRow = sortedByPrice[sortedByPrice.length - 1] || null;
+
   return {
     source: 'GME - Mercato del Giorno Prima',
     dataName: 'ME_ZonalPrices',
     segment: 'MGP',
     date: String(dateYYYYMMDD),
     updatedAt: new Date().toISOString(),
-    average: average === null ? null : Number(average.toFixed(6)),
-    count: useful.length,
-    hours: useful.sort((a, b) => a.hour - b.hour)
+    
+average: average === null ? null : Number(average.toFixed(6)),
+
+minPrice: minRow ? Number(minRow.price.toFixed(6)) : null,
+minTime: minRow ? periodToTime(minRow.period || minRow.hour) : null,
+
+maxPrice: maxRow ? Number(maxRow.price.toFixed(6)) : null,
+maxTime: maxRow ? periodToTime(maxRow.period || maxRow.hour) : null,
+
+count: useful.length,
+hours: useful.sort((a, b) => a.hour - b.hour)
   };
 }
 
