@@ -443,7 +443,8 @@ res.json({
 // -----------------------------------------------------
 
 
-  router.get('/history', (req, res) => {
+
+router.get('/history', async (req, res) => {
   const frame = String(req.query.frame || 'daily').toLowerCase();
 
   const supportedFrames = ['daily', 'monthly', 'yearly'];
@@ -456,30 +457,73 @@ res.json({
     });
   }
 
+  const from = req.query.from ? String(req.query.from) : null;
+  const to = req.query.to ? String(req.query.to) : null;
+
+  if (from && to) {
+    let current = from;
+
+    while (current <= to) {
+      let existingFile = loadPunFileByDate(current);
+
+      if (
+        !existingFile ||
+        typeof existingFile.average !== 'number' ||
+        Number.isNaN(existingFile.average) ||
+        !existingFile.count ||
+        existingFile.count === 0
+      ) {
+        try {
+          const downloadedData = await fetchPunForDate(current);
+
+          if (
+            downloadedData &&
+            typeof downloadedData.average === 'number' &&
+            !Number.isNaN(downloadedData.average) &&
+            downloadedData.count > 0
+          ) {
+            const storageDir = path.join(__dirname, '..', 'storage');
+            fs.mkdirSync(storageDir, { recursive: true });
+
+            fs.writeFileSync(
+              path.join(storageDir, `pun_${current}.json`),
+              JSON.stringify(downloadedData, null, 2)
+            );
+
+            console.log(`[PUN HISTORY] Recuperato giorno mancante: ${current}`);
+          }
+        } catch (err) {
+          console.warn(`[PUN HISTORY] Giorno non recuperabile: ${current}`, err.message);
+        }
+      }
+
+      current = nextDayYYYYMMDD(current);
+    }
+  }
+
   const files = loadHistoricalPunFiles();
 
- const from = req.query.from ? String(req.query.from) : null;
- const to = req.query.to ? String(req.query.to) : null;
+  const filteredFiles = files.filter(item => {
+    if (!item || !item.date) return false;
+    if (from && item.date < from) return false;
+    if (to && item.date > to) return false;
+    return true;
+  });
 
-const filteredFiles = files.filter(item => {
-  if (!item || !item.date) return false;
-  if (from && item.date < from) return false;
-  if (to && item.date > to) return false;
-  return true;
-});
-
- const points =
-  frame === 'yearly'
-    ? buildYearlyHistoryChart(filteredFiles)
-    : frame === 'monthly'
-      ? buildMonthlyHistoryChart(filteredFiles)
-      : buildDailyHistoryChart(filteredFiles);
+  const points =
+    frame === 'yearly'
+      ? buildYearlyHistoryChart(filteredFiles)
+      : frame === 'monthly'
+        ? buildMonthlyHistoryChart(filteredFiles)
+        : buildDailyHistoryChart(filteredFiles);
 
   res.json({
     ok: true,
     frame,
     unit: '€/MWh',
-    count: points.length,
+    count: frame === 'yearly'
+      ? filteredFiles.length
+      : points.length,
     points
   });
 });
