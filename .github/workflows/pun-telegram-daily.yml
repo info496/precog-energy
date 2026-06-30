@@ -1,0 +1,16 @@
+name: PRECOG PUN Telegram Daily
+
+on:
+  schedule:
+    - cron: "15,30 11 * * *"
+    - cron: "0,15 12 * * *"
+  workflow_dispatch:
+
+jobs:
+  update-pun-tomorrow:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Call PRECOG PUN D+1 update endpoint
+        run: |
+          curl -X POST https://precog-energy.onrender.com/api/pun/update-tomorrow
