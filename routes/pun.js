@@ -195,22 +195,25 @@ function buildDailyHistoryChart(files) {
 // il valore medio mensile del PUN.
 // =====================================================
 
+
+
 function buildMonthlyHistoryChart(files) {
+
   const groups = {};
 
   for (const item of files) {
+
     if (
       !item ||
       !item.date ||
-      typeof item.average !== 'number' ||
-      Number.isNaN(item.average)
+      !Array.isArray(item.hours)
     ) {
       continue;
     }
 
     const month =
       item.date.substring(0, 4) +
-      '-' +
+      "-" +
       item.date.substring(4, 6);
 
     if (!groups[month]) {
@@ -220,19 +223,33 @@ function buildMonthlyHistoryChart(files) {
       };
     }
 
-    groups[month].sum += item.average;
-    groups[month].count += 1;
+    for (const qh of item.hours) {
+
+      const price = Number(qh.price);
+
+      if (Number.isNaN(price)) continue;
+
+      groups[month].sum += price;
+      groups[month].count += 1;
+
+    }
+
   }
 
   return Object.keys(groups)
     .sort()
     .map(month => ({
+
       month,
+
       price: Number(
-        (groups[month].sum / groups[month].count).toFixed(2)
+        (groups[month].sum / groups[month].count).toFixed(6)
       ),
+
       count: groups[month].count
+
     }));
+
 }
 
 // =====================================================
@@ -257,8 +274,7 @@ function buildYearlyHistoryChart(files) {
     if (
       !item ||
       !item.date ||
-      typeof item.average !== 'number' ||
-      Number.isNaN(item.average)
+      !Array.isArray(item.hours)
     ) {
       continue;
     }
@@ -276,36 +292,33 @@ function buildYearlyHistoryChart(files) {
       );
     }
 
-    groups[year][month].sum += item.average;
-    groups[year][month].count++;
+    for (const qh of item.hours) {
+      const price = Number(qh.price);
+
+      if (Number.isNaN(price)) continue;
+
+      groups[year][month].sum += price;
+      groups[year][month].count += 1;
+    }
   }
 
   const datasets = Object.keys(groups)
     .sort()
     .map(year => ({
-
       label: year,
-
       data: groups[year].map(m => {
-
         if (!m.count) return null;
 
         return Number(
-          (m.sum / m.count).toFixed(2)
+          (m.sum / m.count).toFixed(6)
         );
-
       })
-
     }));
 
   return {
-
     labels: monthLabels,
-
     datasets
-
   };
-
 }
 
 // =====================================================
@@ -444,6 +457,7 @@ res.json({
 
 
 
+
 router.get('/history', async (req, res) => {
   const frame = String(req.query.frame || 'daily').toLowerCase();
 
@@ -460,11 +474,15 @@ router.get('/history', async (req, res) => {
   const from = req.query.from ? String(req.query.from) : null;
   const to = req.query.to ? String(req.query.to) : null;
 
-  if (from && to) {
+const today = todayYYYYMMDD();
+const tomorrow = nextDayYYYYMMDD(today);
+const safeTo = to;
+
+    if (frame === 'daily' && from && safeTo) {
     let current = from;
 
-    while (current <= to) {
-      let existingFile = loadPunFileByDate(current);
+    while (current <= safeTo) {
+      const existingFile = loadPunFileByDate(current);
 
       if (
         !existingFile ||
@@ -506,7 +524,7 @@ router.get('/history', async (req, res) => {
   const filteredFiles = files.filter(item => {
     if (!item || !item.date) return false;
     if (from && item.date < from) return false;
-    if (to && item.date > to) return false;
+    if (safeTo && item.date > safeTo) return false;
     return true;
   });
 
@@ -591,10 +609,26 @@ router.get('/today', async (req, res) => {
 // -----------------------------------------------------
 
 
+
 router.get('/tomorrow', async (req, res) => {
   try {
     const today = todayYYYYMMDD();
     const tomorrowYYYYMMDD = nextDayYYYYMMDD(today);
+
+    const localData = loadPunFileByDate(tomorrowYYYYMMDD);
+
+    if (
+      localData &&
+      typeof localData.average === 'number' &&
+      !Number.isNaN(localData.average) &&
+      localData.count > 0
+    ) {
+      return res.json({
+        ok: true,
+        published: true,
+        data: localData
+      });
+    }
 
     const data = await fetchPunForDate(tomorrowYYYYMMDD);
 
@@ -605,6 +639,14 @@ router.get('/tomorrow', async (req, res) => {
         date: tomorrowYYYYMMDD
       });
     }
+
+    const storageDir = path.join(__dirname, '..', 'storage');
+    fs.mkdirSync(storageDir, { recursive: true });
+
+    fs.writeFileSync(
+      path.join(storageDir, `pun_${tomorrowYYYYMMDD}.json`),
+      JSON.stringify(data, null, 2)
+    );
 
     res.json({
       ok: true,
@@ -617,40 +659,6 @@ router.get('/tomorrow', async (req, res) => {
       ok: true,
       published: false,
       date: nextDayYYYYMMDD(todayYYYYMMDD())
-    });
-  }
-});
-
-// -----------------------------------------------------
-// POST /api/pun/update
-// -----------------------------------------------------
-// Aggiorna manualmente il PUN.
-//
-// Body opzionale:
-// {
-//   "date": "YYYYMMDD"
-// }
-//
-// Se la data non viene specificata, aggiorna il giorno
-// corrente (o GME_TEST_DATE se configurato).
-// -----------------------------------------------------
-
-router.post('/update', async (req, res) => {
-  try {
-    const date = req.body?.date;
-    const data = date
-      ? await updatePunForDate(String(date))
-      : await updatePunToday();
-
-    res.json({
-      ok: true,
-      data
-    });
-
-  } catch (err) {
-    res.status(500).json({
-      ok: false,
-      error: err.message
     });
   }
 });
