@@ -18,4 +18,23 @@ router.get("/login-test", async (req, res) => {
   }
 });
 
+router.get("/stations", async (req, res) => {
+  try {
+    const { getFusionSolarStations } = require("../services/fusionSolarClient");
+
+    const result = await getFusionSolarStations();
+
+    res.json(result);
+  } catch (error) {
+    console.error("Errore lettura impianti FusionSolar:", error.message);
+
+    res.status(500).json({
+      success: false,
+      message: error.message,
+      details: error.response?.data || null
+    });
+  }
+});
+
 module.exports = router;
+
