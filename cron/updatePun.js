@@ -85,21 +85,21 @@ async function sendPunPublishedAlert(data) {
     `${data.date.substring(4, 6)}/` +
     `${data.date.substring(0, 4)}`;
 
-  const message =
+ const message =
 `📢 PRECOG Energy
 
-⚡ PUN ${date} PUBBLICATO
+⚡ PUN del ${date} pubblicato
 
 💶 Medio
 ${avgMWh} €/MWh
 ${avgKWh} €/kWh
 
 📈 Massimo
-${maxMWh} €/MWh  (${data.maxTime})
+${maxMWh} €/MWh (ore ${data.maxTime})
 ${maxKWh} €/kWh
 
 📉 Minimo
-${minMWh} €/MWh  (${data.minTime})
+${minMWh} €/MWh (ore ${data.minTime})
 ${minKWh} €/kWh
 
 ──────────────────

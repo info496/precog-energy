@@ -65,5 +65,34 @@ router.get("/realtime", async (req, res) => {
   }
 });
 
+router.get("/devices", async (req, res) => {
+  try {
+    const {
+      getFusionSolarStations,
+      getFusionSolarDevices
+    } = require("../services/fusionSolarClient");
+
+    const stationsData = await getFusionSolarStations();
+
+    const stationCodes = stationsData.stations.map(station => station.code);
+
+    const devicesData = await getFusionSolarDevices(stationCodes);
+
+    res.json({
+      success: true,
+      stations: stationsData.stations,
+      devices: devicesData
+    });
+  } catch (error) {
+    console.error("Errore dispositivi FusionSolar:", error.message);
+
+    res.status(500).json({
+      success: false,
+      message: error.message,
+      details: error.response?.data || null
+    });
+  }
+});
+
 module.exports = router;
 
