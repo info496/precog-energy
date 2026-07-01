@@ -3,6 +3,7 @@ const express = require('express');
 const cors = require('cors');
 const punRoutes = require('./routes/pun');
 const telegramRoutes = require('./routes/telegram');
+const fusionSolarRoutes = require('./routes/fusionSolar');
 const {
   updatePunToday,
   updatePunTomorrow
@@ -28,6 +29,7 @@ app.get('/api/health', (req, res) => {
 
 app.use('/api/pun', punRoutes);
 app.use('/api/telegram', telegramRoutes);
+app.use('/api/fusionsolar', fusionSolarRoutes);
 
 const cron = require('node-cron');
 
