@@ -59,10 +59,28 @@ async function getFusionSolarStations() {
     }
   );
 
+    const stations = response.data.data.list || [];
+
+  const totalCapacityKw = stations.reduce(
+    (sum, station) => sum + (station.capacity || 0),
+    0
+  );
+
   return {
     success: true,
-    data: response.data
+    total: stations.length,
+    totalCapacityKw,
+    stations: stations.map(station => ({
+      name: station.plantName,
+      code: station.plantCode,
+      capacityKw: station.capacity,
+      address: station.plantAddress,
+      latitude: station.latitude,
+      longitude: station.longitude,
+      gridConnectionDate: station.gridConnectionDate
+    }))
   };
+
 }
 
 module.exports = {
