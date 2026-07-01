@@ -94,5 +94,48 @@ router.get("/devices", async (req, res) => {
   }
 });
 
+router.get("/device-realtime", async (req, res) => {
+
+  try {
+
+    const {
+      getFusionSolarStations,
+      getFusionSolarDevices,
+      getFusionSolarDeviceRealtime
+    } = require("../services/fusionSolarClient");
+
+    const stations = await getFusionSolarStations();
+
+    const devices = await getFusionSolarDevices(
+      stations.stations.map(s => s.code)
+    );
+
+   const inverterIds =
+  devices.data.data
+    .filter(d => d.devTypeId === 1)
+    .map(d => d.id);
+
+    const realtime =
+      await getFusionSolarDeviceRealtime(inverterIds);
+
+    res.json({
+      success: true,
+      realtime
+    });
+
+  } catch (err) {
+
+    console.error(err);
+
+    res.status(500).json({
+      success: false,
+      message: err.message,
+      details: err.response?.data || null
+    });
+
+  }
+
+});
+
 module.exports = router;
 

@@ -174,9 +174,38 @@ async function getFusionSolarDevices(stationCodes) {
   };
 }
 
+async function getFusionSolarDeviceRealtime(devIds) {
+  const { baseUrl } = getFusionSolarConfig();
+  const { token, cookies } = await fusionSolarLogin();
+
+  const response = await axios.post(
+    `${baseUrl}/thirdData/getDevRealKpi`,
+    {
+      devIds: devIds.join(","),
+      devTypeId: 1
+    },
+    {
+      headers: {
+        "Content-Type": "application/json",
+        "XSRF-TOKEN": token,
+        "x-xsrf-token": token,
+        "X-Requested-With": "XMLHttpRequest",
+        Cookie: cookies ? cookies.join("; ") : "",
+        Accept: "application/json"
+      }
+    }
+  );
+
+  return {
+    success: true,
+    data: response.data
+  };
+}
+
 module.exports = {
   fusionSolarLogin,
   getFusionSolarStations,
   getFusionSolarRealtime,
-  getFusionSolarDevices
+  getFusionSolarDevices,
+  getFusionSolarDeviceRealtime
 };
