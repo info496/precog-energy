@@ -156,8 +156,11 @@ if (!battery || battery.battery_soc == null) {
       .toFixed(2)
       .replace(".", ",");
 
-  batteryLine =
-`\n🔋 ${battery.battery_soc}% ⬆️ ${charged} kWh ⬇️ ${discharged} kWh`;
+const batteryIcon =
+  battery.battery_soc < 30 ? "🪫" : "🔋";
+
+batteryLine =
+`\n${batteryIcon} ${battery.battery_soc}% ⬆️ ${charged} kWh ⬇️ ${discharged} kWh`;
 
 }
 
