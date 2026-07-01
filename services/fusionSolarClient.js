@@ -174,30 +174,41 @@ async function getFusionSolarDevices(stationCodes) {
   };
 }
 
-async function getFusionSolarDeviceRealtime(devIds) {
+async function getFusionSolarDeviceRealtime(devIds, devTypeId = 1) {
   const { baseUrl } = getFusionSolarConfig();
-  const { token, cookies } = await fusionSolarLogin();
 
-  const response = await axios.post(
-    `${baseUrl}/thirdData/getDevRealKpi`,
-    {
-      devIds: devIds.join(","),
-      devTypeId: 1
-    },
-    {
-      headers: {
-        "Content-Type": "application/json",
-        "XSRF-TOKEN": token,
-        "x-xsrf-token": token,
-        "X-Requested-With": "XMLHttpRequest",
-        Cookie: cookies ? cookies.join("; ") : "",
-        Accept: "application/json"
+  async function callDeviceRealtime() {
+    const { token, cookies } = await fusionSolarLogin();
+
+    return axios.post(
+      `${baseUrl}/thirdData/getDevRealKpi`,
+      {
+        devIds: devIds.join(","),
+        devTypeId
+      },
+      {
+        headers: {
+          "Content-Type": "application/json",
+          "XSRF-TOKEN": token,
+          "xsrf-token": token,
+          "x-xsrf-token": token,
+          "X-Requested-With": "XMLHttpRequest",
+          Cookie: cookies ? cookies.join("; ") : "",
+          Accept: "application/json"
+        }
       }
-    }
-  );
+    );
+  }
+
+  let response = await callDeviceRealtime();
+
+  if (response.data?.failCode === 305) {
+    console.log("[FusionSolar] Sessione scaduta, nuovo login...");
+    response = await callDeviceRealtime();
+  }
 
   return {
-    success: true,
+    success: response.data?.success === true,
     data: response.data
   };
 }

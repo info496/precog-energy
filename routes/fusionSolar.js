@@ -137,5 +137,51 @@ router.get("/device-realtime", async (req, res) => {
 
 });
 
+router.get("/battery-realtime", async (req, res) => {
+  try {
+    const {
+      getFusionSolarStations,
+      getFusionSolarDevices,
+      getFusionSolarDeviceRealtime
+    } = require("../services/fusionSolarClient");
+
+    const stations = await getFusionSolarStations();
+
+    const devices = await getFusionSolarDevices(
+      stations.stations.map(s => s.code)
+    );
+
+    const batteries =
+      devices.data.data
+        .filter(d => d.devTypeId === 39)
+        .map(d => ({
+          id: d.id,
+          name: d.devName,
+          model: d.model,
+          stationCode: d.stationCode
+        }));
+
+    const realtime = await getFusionSolarDeviceRealtime(
+      batteries.map(b => b.id),
+      39
+    );
+
+    res.json({
+      success: true,
+      batteries,
+      realtime
+    });
+
+  } catch (err) {
+    console.error("Errore batterie FusionSolar:", err.message);
+
+    res.status(500).json({
+      success: false,
+      message: err.message,
+      details: err.response?.data || null
+    });
+  }
+});
+
 module.exports = router;
 

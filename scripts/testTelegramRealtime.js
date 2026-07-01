@@ -20,28 +20,74 @@ const {
       stationsData.stations.map(s => s.code)
     );
 
-    const realtimeMap = new Map();
+  const realtimeMap = new Map();
 
-    realtimeData.plants.forEach(p => {
-      realtimeMap.set(p.code, p);
-    });
+const plantRealtimeList = realtimeData?.plants || [];
 
+plantRealtimeList.forEach(p => {
+  realtimeMap.set(p.code, p);
+});
 
 const devicesData = await getFusionSolarDevices(
   stationsData.stations.map(s => s.code)
 );
 
-const inverterDevices = devicesData.data.data.filter(
+const deviceList = devicesData?.data?.data || [];
+
+const batteryDevices = deviceList.filter(
+  d => d.devTypeId === 39
+);
+
+const batteryRealtime = await getFusionSolarDeviceRealtime(
+  batteryDevices.map(d => d.id),
+  39
+);
+
+const batteryRealtimeList =
+  batteryRealtime?.data?.data?.data ||
+  batteryRealtime?.data?.data ||
+  [];
+
+if (!batteryRealtimeList.length) {
+  console.log("⚠️ Nessun dato realtime batteria:", batteryRealtime);
+}
+
+const batteryMap = new Map();
+
+for (const battery of batteryDevices) {
+  const rt = batteryRealtimeList.find(
+    b => b.devId === battery.id
+  );
+
+  if (!rt) continue;
+
+  batteryMap.set(
+    battery.stationCode,
+    rt.dataItemMap || {}
+  );
+}
+
+const inverterDevices = deviceList.filter(
   d => d.devTypeId === 1
 );
 
 const inverterRealtime = await getFusionSolarDeviceRealtime(
-  inverterDevices.map(d => d.id)
+  inverterDevices.map(d => d.id),
+  1
 );
+
+const inverterRealtimeList =
+  inverterRealtime?.data?.data?.data ||
+  inverterRealtime?.data?.data ||
+  [];
+
+if (!inverterRealtimeList.length) {
+  console.log("⚠️ Nessun dato realtime inverter:", inverterRealtime);
+}
 
 const inverterRealtimeMap = new Map();
 
-inverterRealtime.data.data.forEach(inv => {
+inverterRealtimeList.forEach(inv => {
   inverterRealtimeMap.set(inv.devId, inv.dataItemMap || {});
 });
 
@@ -90,12 +136,36 @@ ${stationsData.stations.map(station => {
 
 const currentPowerKw = powerByStation.get(station.code) || 0;
 
+const battery = batteryMap.get(station.code);
+
+let batteryLine = "";
+
+if (!battery || battery.battery_soc == null) {
+
+  batteryLine = `\n🔋 🔴 <b>OFFLINE</b>`;
+
+} else {
+
+  const charged =
+    (battery.charge_cap || 0)
+      .toFixed(2)
+      .replace(".", ",");
+
+  const discharged =
+    (battery.discharge_cap || 0)
+      .toFixed(2)
+      .replace(".", ",");
+
+  batteryLine =
+`\n🔋 ${battery.battery_soc}% ⬆️ ${charged} kWh ⬇️ ${discharged} kWh`;
+
+}
+
 return `${rt.status.emoji} ${station.name}
-⚡ ${currentPowerKw.toFixed(2).replace(".", ",")} kW | 📈 ${rt.todayEnergyKwh.toFixed(2).replace(".", ",")} kWh`;
+⚡ ${currentPowerKw.toFixed(2).replace(".", ",")} kW | 📈 ${rt.todayEnergyKwh.toFixed(2).replace(".", ",")} kWh${batteryLine}`;
 
-}).join("\n")}
+}).join("\n\n")}
 
-──────────────────
 🤖 Powered by PRECOG Energy`;
 
     await sendTelegramMessage(
