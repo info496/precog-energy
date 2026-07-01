@@ -2,7 +2,9 @@ require("dotenv").config();
 
 const {
   getFusionSolarStations,
-  getFusionSolarRealtime
+  getFusionSolarRealtime,
+  getFusionSolarDevices,
+  getFusionSolarDeviceRealtime
 } = require("../services/fusionSolarClient");
 
 const {
@@ -23,6 +25,35 @@ const {
     realtimeData.plants.forEach(p => {
       realtimeMap.set(p.code, p);
     });
+
+
+const devicesData = await getFusionSolarDevices(
+  stationsData.stations.map(s => s.code)
+);
+
+const inverterDevices = devicesData.data.data.filter(
+  d => d.devTypeId === 1
+);
+
+const inverterRealtime = await getFusionSolarDeviceRealtime(
+  inverterDevices.map(d => d.id)
+);
+
+const inverterRealtimeMap = new Map();
+
+inverterRealtime.data.data.forEach(inv => {
+  inverterRealtimeMap.set(inv.devId, inv.dataItemMap || {});
+});
+
+const powerByStation = new Map();
+
+for (const inverter of inverterDevices) {
+  const kpi = inverterRealtimeMap.get(inverter.id);
+  const power = kpi?.active_power || 0;
+
+  const current = powerByStation.get(inverter.stationCode) || 0;
+  powerByStation.set(inverter.stationCode, current + power);
+}
 
     let faults = 0;
     const lines = [];
@@ -57,8 +88,10 @@ ${stationsData.stations.map(station => {
 
   const rt = realtimeMap.get(station.code);
 
-  return `${rt.status.emoji} ${station.name}
-📈 ${rt.todayEnergyKwh.toFixed(2).replace(".", ",")} kWh`;
+const currentPowerKw = powerByStation.get(station.code) || 0;
+
+return `${rt.status.emoji} ${station.name}
+⚡ ${currentPowerKw.toFixed(2).replace(".", ",")} kW | 📈 ${rt.todayEnergyKwh.toFixed(2).replace(".", ",")} kWh`;
 
 }).join("\n")}
 
