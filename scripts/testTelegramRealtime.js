@@ -165,9 +165,8 @@ return `${rt.status.emoji} ${station.name}
 ⚡ ${currentPowerKw.toFixed(2).replace(".", ",")} kW | 📈 ${rt.todayEnergyKwh.toFixed(2).replace(".", ",")} kWh${batteryLine}`;
 
 }).join("\n\n")}
-
+──────────────────
 🤖 Powered by PRECOG Energy`;
-
     await sendTelegramMessage(
       message,
       process.env.TELEGRAM_FV_CHAT_ID

@@ -1,5 +1,7 @@
 const axios = require("axios");
 
+let cachedSession = null;
+
 function getFusionSolarConfig() {
   const baseUrl = process.env.FUSIONSOLAR_BASE_URL;
   const username = process.env.FUSIONSOLAR_API_USER;
@@ -27,60 +29,76 @@ async function fusionSolarLogin() {
 
   const cookies = response.headers["set-cookie"];
 
-    return {
+  if (!token) {
+    throw new Error("Token FusionSolar non ricevuto dal login");
+  }
+
+  cachedSession = {
+    token,
+    cookies,
+    createdAt: Date.now()
+  };
+
+  return {
     success: true,
     data: response.data,
-    headers: response.headers,
     token,
     cookies
   };
 }
 
-async function getFusionSolarStations() {
-  const { baseUrl } = getFusionSolarConfig();
+async function getFusionSolarSession(forceLogin = false) {
+  const maxAgeMs = 10 * 60 * 1000;
 
-  const login = await fusionSolarLogin();
-
-  if (!login.token) {
-    throw new Error("Token FusionSolar non ricevuto dal login");
+  if (
+    !forceLogin &&
+    cachedSession &&
+    Date.now() - cachedSession.createdAt < maxAgeMs
+  ) {
+    return cachedSession;
   }
 
-  const response = await axios.post(
-    `${baseUrl}/thirdData/stations`,
+  return fusionSolarLogin();
+}
+
+function buildFusionSolarHeaders(session) {
+  return {
+    "Content-Type": "application/json",
+    "XSRF-TOKEN": session.token,
+    "xsrf-token": session.token,
+    "x-xsrf-token": session.token,
+    "X-Requested-With": "XMLHttpRequest",
+    Cookie: session.cookies ? session.cookies.join("; ") : "",
+    Accept: "application/json"
+  };
+}
+
+async function fusionSolarPost(path, body, retry = true) {
+  const { baseUrl } = getFusionSolarConfig();
+  let session = await getFusionSolarSession();
+
+  let response = await axios.post(
+    `${baseUrl}${path}`,
+    body,
     {
-      pageNo: 1,
-      pageSize: 100
-    },
-    {
-      headers: {
-        "XSRF-TOKEN": login.token,
-        Cookie: login.cookies ? login.cookies.join("; ") : ""
-      }
+      headers: buildFusionSolarHeaders(session)
     }
   );
 
-    const stations = response.data.data.list || [];
+  if (retry && response.data?.failCode === 305) {
+    console.log("[FusionSolar] USER_MUST_RELOGIN, rinnovo sessione...");
+    session = await getFusionSolarSession(true);
 
-  const totalCapacityKw = stations.reduce(
-    (sum, station) => sum + (station.capacity || 0),
-    0
-  );
+    response = await axios.post(
+      `${baseUrl}${path}`,
+      body,
+      {
+        headers: buildFusionSolarHeaders(session)
+      }
+    );
+  }
 
-  return {
-    success: true,
-    total: stations.length,
-    totalCapacityKw,
-    stations: stations.map(station => ({
-      name: station.plantName,
-      code: station.plantCode,
-      capacityKw: station.capacity,
-      address: station.plantAddress,
-      latitude: station.latitude,
-      longitude: station.longitude,
-      gridConnectionDate: station.gridConnectionDate
-    }))
-  };
-
+  return response;
 }
 
 function mapFusionSolarHealthState(value) {
@@ -108,22 +126,43 @@ function mapFusionSolarHealthState(value) {
   }
 }
 
-async function getFusionSolarRealtime(stationCodes) {
-  const { baseUrl } = getFusionSolarConfig();
-  const { token, cookies } = await fusionSolarLogin();
+async function getFusionSolarStations() {
+  const response = await fusionSolarPost(
+    "/thirdData/stations",
+    {
+      pageNo: 1,
+      pageSize: 100
+    }
+  );
 
-  const response = await axios.post(
-    `${baseUrl}/thirdData/getStationRealKpi`,
+  const stations = response.data.data?.list || [];
+
+  const totalCapacityKw = stations.reduce(
+    (sum, station) => sum + (station.capacity || 0),
+    0
+  );
+
+  return {
+    success: true,
+    total: stations.length,
+    totalCapacityKw,
+    stations: stations.map(station => ({
+      name: station.plantName,
+      code: station.plantCode,
+      capacityKw: station.capacity,
+      address: station.plantAddress,
+      latitude: station.latitude,
+      longitude: station.longitude,
+      gridConnectionDate: station.gridConnectionDate
+    }))
+  };
+}
+
+async function getFusionSolarRealtime(stationCodes) {
+  const response = await fusionSolarPost(
+    "/thirdData/getStationRealKpi",
     {
       stationCodes: stationCodes.join(",")
-    },
-    {
-      headers: {
-        "Content-Type": "application/json",
-        "XSRF-TOKEN": token,
-        Cookie: cookies ? cookies.join("; ") : "",
-        Accept: "application/json"
-      }
     }
   );
 
@@ -150,62 +189,27 @@ async function getFusionSolarRealtime(stationCodes) {
 }
 
 async function getFusionSolarDevices(stationCodes) {
-  const { baseUrl } = getFusionSolarConfig();
-  const { token, cookies } = await fusionSolarLogin();
-
-  const response = await axios.post(
-    `${baseUrl}/thirdData/getDevList`,
+  const response = await fusionSolarPost(
+    "/thirdData/getDevList",
     {
       stationCodes: stationCodes.join(",")
-    },
-    {
-      headers: {
-        "Content-Type": "application/json",
-        "XSRF-TOKEN": token,
-        Cookie: cookies ? cookies.join("; ") : "",
-        Accept: "application/json"
-      }
     }
   );
 
   return {
-    success: true,
+    success: response.data?.success === true,
     data: response.data
   };
 }
 
 async function getFusionSolarDeviceRealtime(devIds, devTypeId = 1) {
-  const { baseUrl } = getFusionSolarConfig();
-
-  async function callDeviceRealtime() {
-    const { token, cookies } = await fusionSolarLogin();
-
-    return axios.post(
-      `${baseUrl}/thirdData/getDevRealKpi`,
-      {
-        devIds: devIds.join(","),
-        devTypeId
-      },
-      {
-        headers: {
-          "Content-Type": "application/json",
-          "XSRF-TOKEN": token,
-          "xsrf-token": token,
-          "x-xsrf-token": token,
-          "X-Requested-With": "XMLHttpRequest",
-          Cookie: cookies ? cookies.join("; ") : "",
-          Accept: "application/json"
-        }
-      }
-    );
-  }
-
-  let response = await callDeviceRealtime();
-
-  if (response.data?.failCode === 305) {
-    console.log("[FusionSolar] Sessione scaduta, nuovo login...");
-    response = await callDeviceRealtime();
-  }
+  const response = await fusionSolarPost(
+    "/thirdData/getDevRealKpi",
+    {
+      devIds: devIds.join(","),
+      devTypeId
+    }
+  );
 
   return {
     success: response.data?.success === true,
