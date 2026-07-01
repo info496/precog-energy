@@ -83,7 +83,74 @@ async function getFusionSolarStations() {
 
 }
 
+function mapFusionSolarHealthState(value) {
+  switch (value) {
+    case 3:
+      return {
+        code: "NORMAL",
+        label: "Normale",
+        emoji: "🟢"
+      };
+
+    case 2:
+      return {
+        code: "FAULT",
+        label: "Guasto",
+        emoji: "🔴"
+      };
+
+    default:
+      return {
+        code: "UNKNOWN",
+        label: `Sconosciuto (${value})`,
+        emoji: "⚪"
+      };
+  }
+}
+
+async function getFusionSolarRealtime(stationCodes) {
+  const { baseUrl } = getFusionSolarConfig();
+  const { token, cookies } = await fusionSolarLogin();
+
+  const response = await axios.post(
+    `${baseUrl}/thirdData/getStationRealKpi`,
+    {
+      stationCodes: stationCodes.join(",")
+    },
+    {
+      headers: {
+        "Content-Type": "application/json",
+        "XSRF-TOKEN": token,
+        Cookie: cookies ? cookies.join("; ") : "",
+        Accept: "application/json"
+      }
+    }
+  );
+
+  const realtimeList = response.data.data || [];
+
+  return {
+    success: true,
+    updatedAt: response.data.params?.currentTime || null,
+    plants: realtimeList.map(item => {
+      const kpi = item.dataItemMap || {};
+      const status = mapFusionSolarHealthState(kpi.real_health_state);
+
+      return {
+        code: item.stationCode,
+        status,
+        todayEnergyKwh: kpi.day_power || 0,
+        totalEnergyKwh: kpi.total_power || 0,
+        todayGridEnergyKwh: kpi.day_on_grid_energy || 0,
+        todaySelfUseEnergyKwh: kpi.day_use_energy || 0,
+        monthEnergyKwh: kpi.month_power || 0
+      };
+    })
+  };
+}
+
 module.exports = {
   fusionSolarLogin,
-  getFusionSolarStations
+  getFusionSolarStations,
+  getFusionSolarRealtime
 };

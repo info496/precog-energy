@@ -182,7 +182,7 @@ function buildDailyHistoryChart(files) {
     )
     .map(item => ({
       date: item.date,
-      price: Number(item.average.toFixed(2)),
+      price: Number(item.average.toFixed(6)),
       count: item.count || 0
     }))
     .sort((a, b) => a.date.localeCompare(b.date));
