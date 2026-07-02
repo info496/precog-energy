@@ -217,10 +217,27 @@ async function getFusionSolarDeviceRealtime(devIds, devTypeId = 1) {
   };
 }
 
+async function getFusionSolarAlarms(stationCodes) {
+  const response = await fusionSolarPost(
+    "/thirdData/getAlarmList",
+    {
+      stationCodes: stationCodes.join(","),
+      pageNo: 1,
+      pageSize: 100
+    }
+  );
+
+  return {
+    success: response.data?.success === true,
+    data: response.data
+  };
+}
+
 module.exports = {
   fusionSolarLogin,
   getFusionSolarStations,
   getFusionSolarRealtime,
   getFusionSolarDevices,
-  getFusionSolarDeviceRealtime
+  getFusionSolarDeviceRealtime,
+  getFusionSolarAlarms
 };

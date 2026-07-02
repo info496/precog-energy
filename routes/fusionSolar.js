@@ -183,5 +183,35 @@ router.get("/battery-realtime", async (req, res) => {
   }
 });
 
+router.get("/alarms", async (req, res) => {
+  try {
+    const {
+      getFusionSolarStations,
+      getFusionSolarAlarms
+    } = require("../services/fusionSolarClient");
+
+    const stationsData = await getFusionSolarStations();
+
+    const alarmsData = await getFusionSolarAlarms(
+      stationsData.stations.map(s => s.code)
+    );
+
+    res.json({
+      success: true,
+      stations: stationsData.stations,
+      alarms: alarmsData
+    });
+
+  } catch (error) {
+    console.error("Errore allarmi FusionSolar:", error.message);
+
+    res.status(500).json({
+      success: false,
+      message: error.message,
+      details: error.response?.data || null
+    });
+  }
+});
+
 module.exports = router;
 
